@@ -58,6 +58,7 @@ export function Hall({ name, council, onNameChange }: HallProps) {
     sessionStatus,
     sessions,
     activeSessionId,
+    occult,
     currentRequest,
     feedback,
     pendingParticipants,
@@ -391,6 +392,7 @@ export function Hall({ name, council, onNameChange }: HallProps) {
           canCloseCouncil={!busy && conclusionDraft.trim().length > 0 && canCloseCouncil}
           onOpenSummonAgent={() => setShowSummonAgent(true)}
           summonDisabled={busy || summonBusy}
+          occult={occult}
         />
       </main>
 

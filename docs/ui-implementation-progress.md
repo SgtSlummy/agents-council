@@ -30,6 +30,7 @@ Use this file to decide where new UI features should be implemented and what mus
 | Summon modal UX | Header summon entry, selectable agent list modal | Aligned | Summon modal remains fully wired to agent/model/reasoning controls and version visibility. |
 | Visual token system | Agency palette, typography (`Cinzel` + `Lato`), stone/amber theme | Aligned | Production theme now uses canonical font pair and stone/amber visual language for shell and panels. |
 | Motion/feedback | `motion/react` transitions, typing pulse, toast feedback | Partial | Interaction feedback is present (pending/system updates), but motion-specific parity remains intentionally restrained in runtime implementation. |
+| Occult reading status | Session-scoped reading, pairing, approval, and error visibility | Aligned | Feature-gated `OccultReadingsPanel` uses the canonical hall panel boundary and receives sanitized live state through the existing bridge/watcher path. |
 
 ## Immediate Alignment Priorities
 

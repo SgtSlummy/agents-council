@@ -5,6 +5,7 @@ import type {
   CouncilStateChangedEvent,
   CloseCouncilPayload,
   GetCurrentSessionDataPayload,
+  GetOccultStatusPayload,
   JoinCouncilPayload,
   SetActiveSessionPayload,
   SendResponsePayload,
@@ -40,6 +41,9 @@ const bridge: CouncilDesktopBridge = {
   },
   getCurrentSessionData(payload: GetCurrentSessionDataPayload) {
     return electroview.rpc.request.getCurrentSessionData(payload);
+  },
+  getOccultStatus(payload: GetOccultStatusPayload) {
+    return electroview.rpc.request.getOccultStatus(payload);
   },
   listSessions() {
     return electroview.rpc.request.listSessions({});

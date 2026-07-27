@@ -327,10 +327,11 @@ without creating readings. See `docs/occult-reading-state.md` for the storage,
 backup, restore, migration, integrity, and rollback contract.
 
 The core Hermes bridge and Tarot spread scheduler build on that state without
-changing the schema. Live execution is not exposed through CLI, MCP, or desktop
-interfaces yet and therefore remains disabled by default. See
-`docs/occult-hermes-spreads.md` for trust boundaries, configuration, execution,
-observability, recovery, and rollback.
+changing the schema. Feature-gated CLI, MCP, and Council Hall interfaces expose
+sanitized execution status when `OCCULT_ENABLED=true`; ordinary Council behavior
+is unchanged while disabled. See `docs/occult-interfaces.md` for commands,
+versioned tools, session authorization, UI behavior, and rollback, and
+`docs/occult-hermes-spreads.md` for the underlying execution trust boundary.
 
 Summon settings are stored alongside state at:
 

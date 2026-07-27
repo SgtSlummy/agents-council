@@ -3,6 +3,7 @@ import type {
   GetCurrentSessionDataResponse,
   GlobalSettingsResponse,
   ListSessionsResponse,
+  OccultStatusResponse,
   SendResponseResponse,
   StartCouncilResponse,
   SummonAgentResponse,
@@ -52,6 +53,11 @@ export type SetActiveSessionPayload = {
   session_id: string;
 };
 
+export type GetOccultStatusPayload = {
+  agent_name: string;
+  session_id?: string;
+};
+
 export type UpdateSummonSettingsPayload = {
   agent: string;
   model?: string | null;
@@ -76,6 +82,7 @@ export interface CouncilDesktopBridge {
     payload: GetCurrentSessionDataPayload,
   ) => Promise<BridgeResult<GetCurrentSessionDataResponse>>;
   listSessions: () => Promise<BridgeResult<ListSessionsResponse>>;
+  getOccultStatus: (payload: GetOccultStatusPayload) => Promise<BridgeResult<OccultStatusResponse>>;
   setActiveSession: (payload: SetActiveSessionPayload) => Promise<BridgeResult<GetCurrentSessionDataResponse>>;
   sendResponse: (payload: SendResponsePayload) => Promise<BridgeResult<SendResponseResponse>>;
   closeCouncil: (payload: CloseCouncilPayload) => Promise<BridgeResult<CloseCouncilResponse>>;

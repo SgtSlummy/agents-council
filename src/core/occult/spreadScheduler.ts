@@ -64,7 +64,7 @@ export class TarotSpreadScheduler {
   }
 
   async execute(input: TarotSpreadExecution, signal?: AbortSignal): Promise<OccultReading> {
-    const plan = parseSpread(input);
+    const plan = validateTarotSpreadExecution(input);
     const started = await this.readings.startReading({
       councilSessionId: plan.councilSessionId,
       spreadId: plan.spreadId,
@@ -244,7 +244,7 @@ export class TarotSpreadScheduler {
   }
 }
 
-function parseSpread(input: TarotSpreadExecution): ParsedTarotSpreadExecution {
+export function validateTarotSpreadExecution(input: TarotSpreadExecution): ParsedTarotSpreadExecution {
   const result = tarotSpreadExecutionSchema.safeParse(input);
   if (!result.success) {
     const fields = [

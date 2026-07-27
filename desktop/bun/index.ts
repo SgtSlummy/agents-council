@@ -5,6 +5,7 @@ import { watchCouncilState } from "../../src/core/state/watcher";
 import {
   closeCouncilAction,
   getCurrentSessionDataAction,
+  getOccultStatusAction,
   getErrorMessage,
   getSettingsAction,
   getSummonSettingsAction,
@@ -23,6 +24,7 @@ import type {
   CloseCouncilPayload,
   CouncilStateChangedEvent,
   GetCurrentSessionDataPayload,
+  GetOccultStatusPayload,
   JoinCouncilPayload,
   SetActiveSessionPayload,
   SendResponsePayload,
@@ -50,6 +52,7 @@ const councilBridgeRpc = BrowserView.defineRPC({
       joinCouncil: (payload: JoinCouncilPayload) => runBridgeAction(() => joinCouncilAction(payload)),
       getCurrentSessionData: (payload: GetCurrentSessionDataPayload) =>
         runBridgeAction(() => getCurrentSessionDataAction(payload)),
+      getOccultStatus: (payload: GetOccultStatusPayload) => runBridgeAction(() => getOccultStatusAction(payload)),
       listSessions: () => runBridgeAction(() => listSessionsAction({})),
       setActiveSession: (payload: SetActiveSessionPayload) => runBridgeAction(() => setActiveSessionAction(payload)),
       sendResponse: (payload: SendResponsePayload) => runBridgeAction(() => sendResponseAction(payload)),

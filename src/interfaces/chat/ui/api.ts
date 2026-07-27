@@ -4,6 +4,7 @@ import type {
   CouncilDesktopBridge,
   CouncilStateChangedEvent,
   GetCurrentSessionDataPayload,
+  GetOccultStatusPayload,
   JoinCouncilPayload,
   SetActiveSessionPayload,
   SendResponsePayload,
@@ -17,6 +18,7 @@ import type {
   GetCurrentSessionDataResponse,
   GlobalSettingsResponse,
   ListSessionsResponse,
+  OccultStatusResponse,
   SendResponseResponse,
   StartCouncilResponse,
   SummonAgentResponse,
@@ -119,6 +121,18 @@ export async function listSessions(): Promise<ListSessionsResponse> {
     path: "/list-sessions",
     payload: {},
     bridgeCall: (bridge) => bridge.listSessions(),
+  });
+}
+
+export async function getOccultStatus(agentName: string, sessionId?: string): Promise<OccultStatusResponse> {
+  const payload: GetOccultStatusPayload = {
+    agent_name: agentName,
+    ...(sessionId ? { session_id: sessionId } : {}),
+  };
+  return callBridgeOrHttp({
+    path: "/get-occult-status",
+    payload,
+    bridgeCall: (bridge) => bridge.getOccultStatus(payload),
   });
 }
 

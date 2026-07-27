@@ -22,6 +22,8 @@ import {
   summonAgent,
 } from "../../../core/services/council/summon";
 import { FileCouncilStateStore } from "../../../core/state/fileStateStore";
+import { loadOccultInterfaceConfig } from "../../occult/config";
+import { OccultInterfaceService } from "../../occult/service";
 import {
   mapCloseCouncilInput,
   mapCloseCouncilResponse,
@@ -45,6 +47,7 @@ import type {
   GetCurrentSessionDataResponse,
   GlobalSettingsResponse,
   ListSessionsResponse,
+  OccultStatusResponse,
   SessionListItemDto,
   SendResponseResponse,
   StartCouncilResponse,
@@ -106,6 +109,14 @@ export async function listSessionsAction(payload: unknown): Promise<ListSessions
     active_session_id: result.activeSessionId,
     sessions: result.sessions.map((session) => mapSessionListItem(session, result.state)),
   };
+}
+
+export async function getOccultStatusAction(payload: unknown): Promise<OccultStatusResponse> {
+  const body = requireRecord(payload);
+  const agentName = requireString(body, "agent_name");
+  const sessionId = optionalString(body, "session_id");
+  const occult = new OccultInterfaceService(new FileCouncilStateStore(), loadOccultInterfaceConfig());
+  return occult.status(agentName, sessionId);
 }
 
 export async function setActiveSessionAction(payload: unknown): Promise<GetCurrentSessionDataResponse> {

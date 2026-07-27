@@ -6,6 +6,7 @@ import {
   BridgeApiError,
   closeCouncilAction,
   getCurrentSessionDataAction,
+  getOccultStatusAction,
   getErrorMessage,
   getErrorStatus,
   getSettingsAction,
@@ -70,6 +71,8 @@ export function startChatServer(options: ChatServerOptions): ChatServer {
                 return await handleJsonAction(req, getCurrentSessionDataAction);
               case "/list-sessions":
                 return Response.json(await listSessionsAction({}));
+              case "/get-occult-status":
+                return await handleJsonAction(req, getOccultStatusAction);
               case "/set-active-session":
                 return await handleJsonAction(req, setActiveSessionAction);
               case "/send-response":

@@ -76,6 +76,8 @@ export type ListSessionsResponse = {
   sessions: SessionListItemDto[];
 };
 
+export type OccultStatusResponse = OccultStatusResponseContract;
+
 export type CloseCouncilResponse = {
   agent_name: string;
   session_id: string;
@@ -123,3 +125,4 @@ export type SummonAgentResponse = {
   model: string | null;
   feedback: FeedbackDto;
 };
+import type { OccultStatusResponse as OccultStatusResponseContract } from "../../occult/types";

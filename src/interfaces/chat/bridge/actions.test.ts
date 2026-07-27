@@ -7,6 +7,7 @@ import { watchCouncilState } from "../../../core/state/watcher";
 import {
   closeCouncilAction,
   getCurrentSessionDataAction,
+  getOccultStatusAction,
   getSettingsAction,
   getSummonSettingsAction,
   joinCouncilAction,
@@ -29,6 +30,7 @@ afterEach(async () => {
   );
 
   delete process.env.AGENTS_COUNCIL_STATE_PATH;
+  delete process.env.OCCULT_ENABLED;
 });
 
 async function withTempStatePath<T>(run: (statePath: string) => Promise<T>): Promise<T> {
@@ -50,6 +52,17 @@ async function waitFor(predicate: () => boolean, timeoutMs: number): Promise<voi
 }
 
 describe("chat bridge actions", () => {
+  test("keeps the desktop Occult bridge fail-closed by default", async () => {
+    await withTempStatePath(async () => {
+      expect(await getOccultStatusAction({ agent_name: "host" })).toEqual({
+        contract_version: "1.0.0",
+        enabled: false,
+        session_id: null,
+        readings: [],
+      });
+    });
+  });
+
   test("supports start/join/get/send/close council flow", async () => {
     await withTempStatePath(async () => {
       const started = await startCouncilAction({
