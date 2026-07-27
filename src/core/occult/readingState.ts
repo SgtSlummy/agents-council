@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { z } from "zod";
 
-import type { CouncilSession } from "../services/council/types";
+import type { CouncilSession, CouncilState } from "../services/council/types";
 import type { CouncilStateStore } from "../state/store";
 import {
   OCCULT_CONTRACT_VERSION,
@@ -10,7 +10,9 @@ import {
   readingEventSchema,
   routeSummarySchema,
   validateReadingEvent,
+  validateRouteSummary,
 } from "./contract";
+import type { RouteSummary } from "./contract";
 import type {
   OccultReading,
   OccultReadingArtifact,
@@ -83,6 +85,11 @@ const startReadingInputSchema = z.strictObject({
   spreadId: z.string().min(1),
   spreadVersion: z.string().min(1),
   idempotencyKey: z.string().min(1).max(256),
+  executionFingerprint: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .nullable()
+    .default(null),
   nodes: z
     .array(
       z.strictObject({
@@ -113,11 +120,20 @@ export type AppendOccultReadingEventInput = {
   error?: z.input<typeof occultErrorSchema> | null;
 };
 
+export type CompleteOccultNodeInput = {
+  readingId: string;
+  nodeId: string;
+  routeSummary: unknown;
+  artifacts?: Omit<OccultReadingArtifact, "createdAt" | "nodeId">[];
+};
+
 export class OccultReadingNotFound extends Error {}
 
 export class OccultIdempotencyConflict extends Error {}
 
 export class OccultReadingTerminalStateError extends Error {}
+
+export class OccultReadingTransitionError extends Error {}
 
 export class OccultReadingService {
   constructor(
@@ -260,6 +276,317 @@ export class OccultReadingService {
       };
     });
   }
+
+  async claimNode(readingId: string, nodeId: string): Promise<OccultReadingNode> {
+    return this.updateRunningReading(readingId, (reading, now) => {
+      const node = requireNode(reading, nodeId);
+      if (node.state === "completed" || node.state === "cancelled") {
+        throw new OccultReadingTransitionError(`Cannot claim ${node.state} Occult node: ${nodeId}`);
+      }
+      if (node.state === "running") {
+        return { reading, result: node };
+      }
+
+      const updatedNode: OccultReadingNode = {
+        ...node,
+        state: "running",
+        attempt: node.attempt + 1,
+        startedAt: now,
+        completedAt: null,
+      };
+      const updated = appendReadingEvent(replaceNode(reading, updatedNode), "node.started", now, this.idFactory(), {
+        attempt: updatedNode.attempt,
+        node_id: nodeId,
+      });
+      return { reading: updated, result: updatedNode };
+    });
+  }
+
+  async completeNode(input: CompleteOccultNodeInput): Promise<OccultReading> {
+    const routeSummary = validateRouteSummary(input.routeSummary);
+    return this.updateRunningReading(input.readingId, (reading, now) => {
+      const node = requireNode(reading, input.nodeId);
+      if (node.state === "completed") {
+        const replayed = reading.routeSummaries.some((summary) => summary.invocation_id === routeSummary.invocation_id);
+        if (replayed) {
+          return { reading, result: reading };
+        }
+        throw new OccultReadingTransitionError(`Occult node already completed: ${input.nodeId}`);
+      }
+      if (node.state !== "running") {
+        throw new OccultReadingTransitionError(`Cannot complete Occult node in ${node.state} state: ${input.nodeId}`);
+      }
+
+      const artifacts = (input.artifacts ?? []).map<OccultReadingArtifact>((artifact) => ({
+        ...artifact,
+        nodeId: input.nodeId,
+        createdAt: now,
+      }));
+      const updatedNode: OccultReadingNode = {
+        ...node,
+        state: "completed",
+        completedAt: now,
+      };
+      const routed = appendReadingEvent(
+        {
+          ...replaceNode(reading, updatedNode),
+          routeSummaries: appendUniqueRouteSummary(reading.routeSummaries, routeSummary),
+          artifacts: appendUniqueArtifacts(reading.artifacts, artifacts),
+        },
+        "route.selected",
+        now,
+        this.idFactory(),
+        {
+          fallback_count: routeSummary.fallback_count,
+          invocation_id: routeSummary.invocation_id,
+          node_id: input.nodeId,
+          selected_card_id: routeSummary.selected_card_id,
+        },
+      );
+      const updated = appendReadingEvent(routed, "node.completed", now, this.idFactory(), {
+        attempt: node.attempt,
+        node_id: input.nodeId,
+      });
+      return { reading: updated, result: updated };
+    });
+  }
+
+  async failNode(readingId: string, nodeId: string, error: z.input<typeof occultErrorSchema>): Promise<OccultReading> {
+    const parsedError = occultErrorSchema.parse(error);
+    return this.updateRunningReading(readingId, (reading, now) => {
+      const node = requireNode(reading, nodeId);
+      if (node.state === "completed" || node.state === "cancelled") {
+        return { reading, result: reading };
+      }
+      if (node.state !== "running") {
+        throw new OccultReadingTransitionError(`Cannot fail Occult node in ${node.state} state: ${nodeId}`);
+      }
+
+      const updatedNode: OccultReadingNode = {
+        ...node,
+        state: "failed",
+        completedAt: now,
+      };
+      const updated = appendReadingEvent(
+        replaceNode(reading, updatedNode),
+        "node.failed",
+        now,
+        this.idFactory(),
+        { attempt: node.attempt, node_id: nodeId },
+        parsedError,
+      );
+      return { reading: updated, result: updated };
+    });
+  }
+
+  async ensureApproval(readingId: string, nodeId: string): Promise<OccultReadingApproval> {
+    return this.updateRunningReading(readingId, (reading, now) => {
+      requireNode(reading, nodeId);
+      const existing = reading.approvals.find((approval) => approval.nodeId === nodeId);
+      if (existing) {
+        return { reading, result: existing };
+      }
+      const approval: OccultReadingApproval = {
+        approvalId: this.idFactory(),
+        nodeId,
+        state: "pending",
+        requestedAt: now,
+        resolvedAt: null,
+        resolvedBy: null,
+      };
+      return {
+        reading: {
+          ...reading,
+          approvals: [...reading.approvals, approval],
+          updatedAt: now,
+        },
+        result: approval,
+      };
+    });
+  }
+
+  async resolveApproval(
+    readingId: string,
+    approvalId: string,
+    resolution: "approved" | "rejected",
+    resolvedBy: string,
+  ): Promise<OccultReadingApproval> {
+    if (!resolvedBy.trim()) {
+      throw new OccultReadingTransitionError("Approval resolver must not be empty.");
+    }
+    return this.updateRunningReading(readingId, (reading, now) => {
+      const index = reading.approvals.findIndex((approval) => approval.approvalId === approvalId);
+      const approval = index >= 0 ? reading.approvals[index] : undefined;
+      if (!approval) {
+        throw new OccultReadingTransitionError(`Occult approval not found: ${approvalId}`);
+      }
+      if (approval.state !== "pending") {
+        if (approval.state === resolution && approval.resolvedBy === resolvedBy) {
+          return { reading, result: approval };
+        }
+        throw new OccultReadingTransitionError(`Occult approval is already ${approval.state}: ${approvalId}`);
+      }
+      const resolved: OccultReadingApproval = {
+        ...approval,
+        state: resolution,
+        resolvedAt: now,
+        resolvedBy,
+      };
+      return {
+        reading: {
+          ...reading,
+          approvals: [...reading.approvals.slice(0, index), resolved, ...reading.approvals.slice(index + 1)],
+          updatedAt: now,
+        },
+        result: resolved,
+      };
+    });
+  }
+
+  async finishReading(
+    readingId: string,
+    state: OccultReadingOutcome["state"],
+    summary: string,
+    error: z.input<typeof occultErrorSchema> | null = null,
+  ): Promise<OccultReading> {
+    const eventType = `reading.${state}` as "reading.cancelled" | "reading.completed" | "reading.failed";
+    return this.store.update((storeState) => {
+      const index = storeState.occultReadings.findIndex((candidate) => candidate.id === readingId);
+      const reading = index >= 0 ? storeState.occultReadings[index] : undefined;
+      if (!reading) {
+        throw new OccultReadingNotFound(`Occult reading not found: ${readingId}`);
+      }
+      if (TERMINAL_READING_STATES.has(reading.state)) {
+        if (reading.state === state) {
+          return { state: storeState, result: reading };
+        }
+        throw new OccultReadingTerminalStateError(`Occult reading is already ${reading.state}: ${reading.id}`);
+      }
+      if (state === "completed" && reading.nodes.some((node) => node.state !== "completed")) {
+        throw new OccultReadingTransitionError(`Cannot complete Occult reading with unfinished nodes: ${readingId}`);
+      }
+
+      const now = this.clock();
+      const terminalNodes =
+        state === "completed"
+          ? reading.nodes
+          : reading.nodes.map<OccultReadingNode>((node) =>
+              node.state === "pending" || node.state === "running"
+                ? { ...node, state: "cancelled", completedAt: now }
+                : node,
+            );
+      const updated = appendReadingEvent(
+        { ...reading, nodes: terminalNodes },
+        eventType,
+        now,
+        this.idFactory(),
+        { summary },
+        error ? occultErrorSchema.parse(error) : null,
+      );
+      return {
+        state: replaceReading(storeState, index, updated),
+        result: updated,
+      };
+    });
+  }
+
+  private async updateRunningReading<T>(
+    readingId: string,
+    update: (reading: OccultReading, now: string) => { reading: OccultReading; result: T },
+  ): Promise<T> {
+    return this.store.update((state) => {
+      const index = state.occultReadings.findIndex((candidate) => candidate.id === readingId);
+      const reading = index >= 0 ? state.occultReadings[index] : undefined;
+      if (!reading) {
+        throw new OccultReadingNotFound(`Occult reading not found: ${readingId}`);
+      }
+      if (TERMINAL_READING_STATES.has(reading.state)) {
+        throw new OccultReadingTerminalStateError(`Occult reading is already ${reading.state}: ${reading.id}`);
+      }
+      const mutation = update(reading, this.clock());
+      return {
+        state: mutation.reading === reading ? state : replaceReading(state, index, mutation.reading),
+        result: mutation.result,
+      };
+    });
+  }
+}
+
+function appendReadingEvent(
+  reading: OccultReading,
+  eventType: AppendOccultReadingEventInput["eventType"],
+  now: string,
+  eventId: string,
+  data: Record<string, unknown>,
+  error: z.output<typeof occultErrorSchema> | null = null,
+): OccultReading {
+  const event = validateReadingEvent({
+    contract_version: OCCULT_CONTRACT_VERSION,
+    event_id: eventId,
+    reading_id: reading.id,
+    sequence: reading.nextSequence,
+    event_type: eventType,
+    occurred_at: now,
+    data,
+    error,
+  });
+  const terminalState = TERMINAL_EVENT_TYPES.get(event.event_type);
+  return {
+    ...reading,
+    state: terminalState ?? reading.state,
+    updatedAt: now,
+    nextSequence: reading.nextSequence + 1,
+    events: [...reading.events, event],
+    outcome: terminalState ? createOutcome(terminalState, now, event.data, event.error) : reading.outcome,
+  };
+}
+
+function requireNode(reading: OccultReading, nodeId: string): OccultReadingNode {
+  const node = reading.nodes.find((candidate) => candidate.nodeId === nodeId);
+  if (!node) {
+    throw new OccultReadingTransitionError(`Occult node not found: ${nodeId}`);
+  }
+  return node;
+}
+
+function replaceNode(reading: OccultReading, node: OccultReadingNode): OccultReading {
+  return {
+    ...reading,
+    nodes: reading.nodes.map((candidate) => (candidate.nodeId === node.nodeId ? node : candidate)),
+  };
+}
+
+function replaceReading(state: CouncilState, index: number, reading: OccultReading): CouncilState {
+  return {
+    ...state,
+    occultReadings: [...state.occultReadings.slice(0, index), reading, ...state.occultReadings.slice(index + 1)],
+  };
+}
+
+function appendUniqueRouteSummary(routeSummaries: RouteSummary[], routeSummary: RouteSummary): RouteSummary[] {
+  const existing = routeSummaries.find((summary) => summary.invocation_id === routeSummary.invocation_id);
+  if (!existing) {
+    return [...routeSummaries, routeSummary];
+  }
+  if (JSON.stringify(existing) !== JSON.stringify(routeSummary)) {
+    throw new OccultReadingTransitionError(`Conflicting route summary replay: ${routeSummary.invocation_id}`);
+  }
+  return routeSummaries;
+}
+
+function appendUniqueArtifacts(
+  existingArtifacts: OccultReadingArtifact[],
+  artifacts: OccultReadingArtifact[],
+): OccultReadingArtifact[] {
+  const known = new Map(existingArtifacts.map((artifact) => [artifact.artifactId, artifact]));
+  for (const artifact of artifacts) {
+    const existing = known.get(artifact.artifactId);
+    if (existing && JSON.stringify(existing) !== JSON.stringify(artifact)) {
+      throw new OccultReadingTransitionError(`Conflicting artifact replay: ${artifact.artifactId}`);
+    }
+    known.set(artifact.artifactId, existing ?? artifact);
+  }
+  return [...known.values()];
 }
 
 export function normalizeOccultReadings(input: unknown, sessions: CouncilSession[]): OccultReading[] {
@@ -399,16 +726,16 @@ function parseStartReadingInput(input: StartOccultReadingInput): z.output<typeof
 }
 
 function fingerprintStartInput(input: z.output<typeof startReadingInputSchema>): string {
-  return createHash("sha256")
-    .update(
-      JSON.stringify({
-        contractVersion: OCCULT_CONTRACT_VERSION,
-        spreadId: input.spreadId,
-        spreadVersion: input.spreadVersion,
-        nodes: input.nodes,
-      }),
-    )
-    .digest("hex");
+  const fingerprintInput: Record<string, unknown> = {
+    contractVersion: OCCULT_CONTRACT_VERSION,
+    spreadId: input.spreadId,
+    spreadVersion: input.spreadVersion,
+    nodes: input.nodes,
+  };
+  if (input.executionFingerprint) {
+    fingerprintInput.executionFingerprint = input.executionFingerprint;
+  }
+  return createHash("sha256").update(JSON.stringify(fingerprintInput)).digest("hex");
 }
 
 function createOutcome(

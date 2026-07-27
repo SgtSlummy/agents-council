@@ -326,6 +326,12 @@ feature-gated Occult reading records. Version 1 and version 2 files migrate
 without creating readings. See `docs/occult-reading-state.md` for the storage,
 backup, restore, migration, integrity, and rollback contract.
 
+The core Hermes bridge and Tarot spread scheduler build on that state without
+changing the schema. Live execution is not exposed through CLI, MCP, or desktop
+interfaces yet and therefore remains disabled by default. See
+`docs/occult-hermes-spreads.md` for trust boundaries, configuration, execution,
+observability, recovery, and rollback.
+
 Summon settings are stored alongside state at:
 
 ```

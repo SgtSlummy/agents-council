@@ -1,10 +1,11 @@
 ---
 id: TASK-27.3
 title: Add Hermes bridge and Tarot spread scheduler
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - Codex
 created_date: '2026-07-27 20:49'
-updated_date: '2026-07-27 20:51'
+updated_date: '2026-07-27 21:23'
 labels:
   - occult
   - hermes
@@ -51,3 +52,13 @@ Allow Council to execute Tarot spread nodes through a bounded Hermes bridge whil
 - [ ] #8 Final summary is added with what changed, why, validation run, and remaining risks/follow-ups.
 - [ ] #9 Task status is set to Done only after all DoD items are checked.
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Extend the durable reading service with atomic node transitions, approval resolution, redacted route/artifact recording, and deterministic terminal operations while preserving the v3 state schema.
+2. Add a strict versioned Hermes bridge boundary with contract validation, recursive secret rejection, timeout/cancellation handling, and a configurable HTTP implementation that exposes no provider client.
+3. Implement a dependency-aware Tarot spread scheduler with bounded parallelism, persisted retries, approval pauses, cancellation, idempotent replay, and restart/resume behavior.
+4. Add deterministic fake-Hermes tests for sequential and parallel success, retry, timeout, outage/partial failure, cancellation, approvals, duplicate starts, and process restart/resume.
+5. Document trust boundaries, configuration, observability, rollback, and the intentionally disabled-by-default live bridge; run targeted tests, typecheck, format validation, and build before publishing the stacked draft PR.
+<!-- SECTION:PLAN:END -->
