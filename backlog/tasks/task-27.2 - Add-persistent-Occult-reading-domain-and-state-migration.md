@@ -1,10 +1,11 @@
 ---
 id: TASK-27.2
 title: Add persistent Occult reading domain and state migration
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - Codex
 created_date: '2026-07-27 20:49'
-updated_date: '2026-07-27 20:51'
+updated_date: '2026-07-27 21:03'
 labels:
   - occult
   - readings
@@ -51,3 +52,20 @@ Add durable Occult reading state to the Council domain so multi-agent workflows 
 - [ ] #8 Final summary is added with what changed, why, validation run, and remaining risks/follow-ups.
 - [ ] #9 Task status is set to Done only after all DoD items are checked.
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Evolve canonical `CouncilState` from version 2 to version 3 by adding an `occultReadings` collection. Migrate version-2 and legacy version-1 files to version 3 while preserving sessions, requests, feedback, participants, active-session selection, locking, and atomic writes; migrations create no readings.
+2. Add focused Occult reading domain types and a small service over the existing `CouncilStateStore`. A reading will own its Council session, spread identity/version, idempotency key and semantic fingerprint, nodes, ordered events, redacted route summaries, approvals, artifacts, and terminal outcome.
+3. Enforce invariants at the persistence boundary: unique reading IDs and session-scoped idempotency keys, valid session references, reading-local node/artifact/approval relationships, contiguous event sequences, no events after terminal state, and terminal outcome/state agreement. The service will atomically create or replay idempotent starts and append sequenced events.
+4. Add migration and lifecycle tests covering v1/v2 preservation, empty reading migration, restart/resume, same-key replay, conflicting duplicate keys, session isolation, event ordering, relationship validation, terminal completion, and post-terminal rejection.
+5. Document storage format, backup/restore behavior, migration, rollback, and the boundary that Council persists only redacted provider/model summaries while Hermes retains credentials and direct provider authority.
+6. Run the full Bun test suite, typecheck, build, and repository formatter gate from an LF checkout; record evidence before task finalization.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+TASK-26.3 remains administratively To Do, but its referenced multi-session v2 state, migration, atomic file-store locking, deterministic service lifecycle, and relationship tests are present on current `main` (commit `164770f`). This task will build on that verified code without changing TASK-26.3 status.
+<!-- SECTION:NOTES:END -->

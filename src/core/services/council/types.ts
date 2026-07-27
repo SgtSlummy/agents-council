@@ -1,3 +1,5 @@
+import type { OccultReading } from "../../occult/readingTypes";
+
 export type CouncilState = {
   version: number;
   activeSessionId: string | null;
@@ -5,6 +7,7 @@ export type CouncilState = {
   requests: CouncilRequest[];
   feedback: CouncilFeedback[];
   participants: CouncilParticipant[];
+  occultReadings: OccultReading[];
 };
 
 export type CouncilConclusion = {

@@ -112,6 +112,7 @@ describe("MCP mapper session targeting", () => {
             lastFeedbackSeen: "feedback-b",
           },
         ],
+        occultReadings: [],
       },
     };
 
@@ -208,6 +209,7 @@ describe("MCP mapper session targeting", () => {
             lastFeedbackSeen: "feedback-b",
           },
         ],
+        occultReadings: [],
       },
     };
 
