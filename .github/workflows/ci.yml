@@ -30,8 +30,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.os }}-bun-latest-
       - run: bun install --frozen-lockfile --linker=isolated
+      - run: bun test
       - run: bun run lint
       - run: bun run typecheck
+      - run: bun run format:check
 
   electrobun-build-smoke:
     name: electrobun-build-smoke-${{ matrix.os }}
@@ -130,3 +132,16 @@ jobs:
             echo "Missing desktop installer artifact for ${PREFIX}"
             exit 1
           fi
+      - name: Validate Occult release payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-smoke/cli release-smoke/desktop-artifacts
+          cp "$CLI_OUT" release-smoke/cli/
+          cp artifacts/stable-${{ matrix.platform }}-* release-smoke/desktop-artifacts/
+          bun scripts/generateOccultReleaseManifest.ts \
+            --root release-smoke \
+            --version ci-smoke \
+            --package agents-council-${{ matrix.platform }}-smoke
+          test -s release-smoke/occult-release-manifest.json
+          test -s release-smoke/SHA256SUMS.txt

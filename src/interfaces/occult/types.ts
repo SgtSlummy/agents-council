@@ -73,6 +73,32 @@ export type OccultStatusResponse = {
   enabled: boolean;
   session_id: string | null;
   readings: OccultReadingDto[];
+  observability: OccultObservabilityDto;
+};
+
+export type OccultObservabilityDto = {
+  bridge: {
+    configured: boolean;
+    status: "degraded" | "disabled" | "healthy" | "unconfigured" | "unknown";
+    last_success_at: string | null;
+    last_failure_at: string | null;
+  };
+  readings: {
+    total: number;
+    running: number;
+    completed: number;
+    failed: number;
+    cancelled: number;
+  };
+  nodes: {
+    failed: number;
+    average_invocation_latency_ms: number | null;
+    maximum_invocation_latency_ms: number | null;
+  };
+  audit: {
+    event_count: number;
+    redacted_error_count: number;
+  };
 };
 
 export type OccultExecutionRequest = {

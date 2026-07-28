@@ -44,10 +44,11 @@ The command above creates a local `artifacts/` folder with files prefixed `stabl
 ## Quality checks
 
 ```bash
+bun test
 bun run lint
-bun run format
 bun run format:check
 bun run typecheck
+bun run build
 ```
 
 ## Packaging model
@@ -66,6 +67,19 @@ bun run typecheck
 Each platform package includes:
 - `council` (or `council.exe`) for terminal CLI usage.
 - `desktop-artifacts/*` (Electrobun installer/update artifacts for that platform release).
+- `occult-release-manifest.json` and `SHA256SUMS.txt`.
+
+Root and platform package metadata declares Occult contract `1.0.0`
+compatibility and the `OCCULT_ENABLED` feature gate.
+
+Generate and security-check a collected payload:
+
+```bash
+bun scripts/generateOccultReleaseManifest.ts \
+  --root bundle \
+  --version 1.2.3 \
+  --package agents-council-linux-x64
+```
 
 ## CI and release expectations
 
@@ -75,6 +89,10 @@ Each platform package includes:
   - publishes the root npm package and platform optional packages,
   - runs install-sanity on macOS/Windows/Linux for `--version`, `--help`, and `mcp`,
   - uploads desktop-launchable installer/artifact files to GitHub Releases.
+  - attaches platform-labeled Occult manifests and SHA-256 checksum files.
+
+See `docs/occult-production-release.md` for the clean release gate, security
+review, upgrade, backup/restore, interruption recovery, and rollback checklist.
 
 Release sequencing gate:
 - Do not cut a public release tag until TASK-26.6 (canonical desktop UI integration) is merged and validated.

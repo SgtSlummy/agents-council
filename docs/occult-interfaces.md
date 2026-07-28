@@ -97,6 +97,11 @@ Occult panel appears only when the feature is enabled and shows:
 
 The existing state watcher refreshes the panel as reading state changes.
 
+The status surface also derives safe operational data from persisted events:
+reading totals, failed-node count, average/maximum invocation latency, last
+bridge success/failure, bridge health classification, and redacted audit-event
+counts. It does not expose prompts or detailed provider routing explanations.
+
 ## Authorization and errors
 
 Authorization is session-scoped across CLI, MCP, desktop bridge, and HTTP UI
@@ -137,3 +142,6 @@ bun run format:check
 The interface tests cover disabled gates, incompatible versions, unauthorized
 session access, sanitized output, cursor inspection, interruption, cancellation,
 and approval-based resume.
+
+Production assembly, checksum, upgrade, security review, and rollback gates are
+documented in `docs/occult-production-release.md`.

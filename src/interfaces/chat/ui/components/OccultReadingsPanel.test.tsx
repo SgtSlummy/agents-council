@@ -8,6 +8,17 @@ const status: OccultStatusResponse = {
   contract_version: "1.0.0",
   enabled: true,
   session_id: "session-1",
+  observability: {
+    bridge: {
+      configured: true,
+      status: "degraded",
+      last_success_at: null,
+      last_failure_at: "2026-07-27T12:00:01.000Z",
+    },
+    readings: { total: 1, running: 1, completed: 0, failed: 0, cancelled: 0 },
+    nodes: { failed: 1, average_invocation_latency_ms: 1000, maximum_invocation_latency_ms: 1000 },
+    audit: { event_count: 2, redacted_error_count: 1 },
+  },
   readings: [
     {
       contract_version: "1.0.0",
@@ -61,6 +72,8 @@ describe("OccultReadingsPanel", () => {
     expect(html).toContain("occult.major.justice + minor.swords.king.audit");
     expect(html).toContain("publish: pending");
     expect(html).toContain("AUDIT_FAILED");
+    expect(html).toContain("Bridge degraded");
+    expect(html).toContain("avg 1000 ms");
     expect(html).not.toContain("api_key");
     expect(html).not.toContain("Authorization");
   });
@@ -68,7 +81,20 @@ describe("OccultReadingsPanel", () => {
   test("does not render the panel while Occult is disabled", () => {
     expect(
       renderToStaticMarkup(
-        <OccultReadingsPanel status={{ contract_version: "1.0.0", enabled: false, session_id: null, readings: [] }} />,
+        <OccultReadingsPanel
+          status={{
+            contract_version: "1.0.0",
+            enabled: false,
+            session_id: null,
+            readings: [],
+            observability: {
+              bridge: { configured: false, status: "disabled", last_success_at: null, last_failure_at: null },
+              readings: { total: 0, running: 0, completed: 0, failed: 0, cancelled: 0 },
+              nodes: { failed: 0, average_invocation_latency_ms: null, maximum_invocation_latency_ms: null },
+              audit: { event_count: 0, redacted_error_count: 0 },
+            },
+          }}
+        />,
       ),
     ).toBe("");
   });
