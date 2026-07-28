@@ -5,7 +5,7 @@ status: Done
 assignee:
   - Codex
 created_date: '2026-07-27 20:48'
-updated_date: '2026-07-28 02:11'
+updated_date: '2026-07-28 02:55'
 labels:
   - occult
   - agents-council
@@ -59,23 +59,21 @@ Integrate Agents Council with the provider-independent Occult System so Council 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Establish a versioned, credential-free Occult contract and feature-gated Council architecture shared with Hermes.
-2. Add durable reading state, safe migration, interruption recovery, and feature-disable behavior without changing ordinary Council sessions.
-3. Integrate the Hermes bridge and Tarot spread scheduler while keeping Hermes/Mythos as the sole model-routing authority.
-4. Expose authorized reading controls through MCP, CLI, HTTP/desktop, and Council Hall interfaces with compatibility documentation.
-5. Harden persistence and audit boundaries, add production observability, validate cross-platform build/package/release assembly, and document upgrade, backup, restore, disablement, and rollback.
+1. Define and version the credential-free Council-Hermes Occult contract behind a disabled-by-default feature gate.
+2. Add migrated persistent reading state with resumable scheduling, cancellation, and ordinary-session compatibility.
+3. Keep Hermes as the exclusive execution and provider-routing bridge while Council orchestrates spread nodes only.
+4. Expose authorized, redacted reading controls and status through MCP, CLI, HTTP, and Council Hall interfaces.
+5. Harden persistence and release boundaries, add observability, reproducible contract manifests/checksums, cross-platform gates, and upgrade/rollback documentation.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Parent completion evidence (2026-07-27): TASK-27.1 through TASK-27.5 are Done. The implementation is split into focused draft PRs #7-#11 stacked on the production-plan PR #6 and targeting main. Verified behavior includes versioned credential-free contracts, feature-gated and migrated durable readings, cancellation/resume and atomic persistence, Hermes-only routing, spread scheduling, MCP/CLI/HTTP/Council Hall controls, redacted security boundaries, release observability, deterministic manifests/checksums, 59 tests/256 assertions, local lint/typecheck/build/format/security checks, stress validation, and green Linux/macOS/Windows lint/test and Electrobun build matrices. Migration impact is additive and feature-gated; no breaking ordinary-session or provider-routing behavior is introduced. Remaining integration risk: stacked PRs must be reviewed and merged in dependency order before issue #1 can be closed in main.
-
-Parent completion evidence (2026-07-27): TASK-27.1 through TASK-27.5 are Done. The delivered stack defines contract 1.0.0 with credential isolation and feature gating; adds durable/resumable reading state and migration; routes spread execution through the Hermes bridge without adding a Council model router; exposes approved MCP, CLI, HTTP/desktop, and Council Hall controls; and adds redacted observability, security validation, deterministic manifests/checksums, and production operations documentation. Validation includes 59 tests/256 assertions, lint, typecheck, build, clean-LF format validation, stress tests for watcher and cancellation races, Windows bundle checksum verification, and green Linux/macOS/Windows lint/test plus Electrobun CI. Migration impact is additive and reversible through the feature gate; no provider credentials cross into Council. Remaining integration constraint: draft PRs #7-#11 are stacked and must merge in dependency order after review.
+Parent completion evidence (2026-07-27): TASK-27.1 through TASK-27.5 are Done. The implementation is split into focused draft PRs #7-#11 stacked on the production-plan PR #6 and targeting main. Delivered behavior includes contract 1.0.0 credential isolation and disabled-by-default feature gating; durable migrated and resumable reading state with cancellation and atomic persistence; Hermes-only provider routing and Tarot spread scheduling; authorized MCP, CLI, HTTP/desktop, and Council Hall controls; redacted persistence and production observability; deterministic manifests/checksums; and migration, backup/restore, disablement, upgrade, and rollback guidance. Validation includes 59 tests/256 assertions, lint, typecheck, build, clean-LF format verification, watcher stress 10/10, cancellation stress 25/25, Windows bundle manifest/checksum verification, and green Linux/macOS/Windows lint/test plus Electrobun CI. Migration is additive and non-destructive; ordinary sessions remain unchanged when Occult is disabled. Remaining integration constraint: draft PRs #7-#11 must be reviewed and merged in dependency order before closing the GitHub issue on main.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Completed the Agents Council Occult integration across five reviewed slices: versioned contract and feature gate, persistent reading domain, Hermes bridge and scheduler, approved operator interfaces, and production hardening/packaging. Hermes remains the sole provider router, Council state is credential-free and redacted, existing sessions remain unchanged while disabled, and the cross-platform production baseline passes. No breaking data migration is introduced. Draft PRs #7 through #11 target main and remain intentionally stacked for review and ordered merge.
+Completed the Agents Council Occult integration umbrella across five implementation slices. Council now has a feature-gated, versioned, credential-isolated contract with Hermes; durable resumable readings and spread orchestration; approved MCP, CLI, HTTP, and Council Hall controls; redacted observability; and reproducible cross-platform release packaging with operator recovery documentation. All supported-platform CI gates pass. No breaking migration is introduced; the stacked draft PR sequence remains #10 followed by #11.
 <!-- SECTION:FINAL_SUMMARY:END -->
