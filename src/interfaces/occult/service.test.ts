@@ -29,7 +29,16 @@ class FakeBridge implements HermesOccultBridge {
     this.calls.push(invocation);
     if (this.hang) {
       await new Promise<void>((_resolve, reject) => {
-        options.signal.addEventListener("abort", () => reject(options.signal.reason), { once: true });
+        const rejectOnAbort = () => reject(options.signal.reason);
+        if (options.signal.aborted) {
+          rejectOnAbort();
+          return;
+        }
+        options.signal.addEventListener("abort", rejectOnAbort, { once: true });
+        if (options.signal.aborted) {
+          options.signal.removeEventListener("abort", rejectOnAbort);
+          rejectOnAbort();
+        }
       });
     }
     const nodeId = invocation.metadata.node_id ?? "node";
