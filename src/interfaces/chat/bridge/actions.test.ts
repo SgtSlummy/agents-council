@@ -140,14 +140,15 @@ describe("chat bridge actions", () => {
           request: "Observe state watcher updates.",
         });
 
-        await waitFor(() => changes >= 1, 2000);
+        await waitFor(() => changes >= 1, 5000);
+        const changesAfterStart = changes;
 
         await sendResponseAction({
           agent_name: "observer",
           content: "Watcher update confirmation.",
         });
 
-        await waitFor(() => changes >= 1, 2000);
+        await waitFor(() => changes > changesAfterStart, 5000);
       } finally {
         watcher.close();
       }

@@ -24,7 +24,11 @@ export async function readJsonFile<T>(filePath: string, fallback: () => T): Prom
 
 export async function writeJsonFileAtomic(filePath: string, data: unknown): Promise<void> {
   const directory = path.dirname(filePath);
-  const tempPath = path.join(directory, `data.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`);
+  const targetName = path.basename(filePath);
+  const tempPath = path.join(
+    directory,
+    `${targetName}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`,
+  );
   const handle = await fs.open(tempPath, "wx");
 
   try {
