@@ -10,6 +10,8 @@ export default {
   },
   runtime: {
     exitOnLastWindowClosed: true,
+    occultContractVersions: ["1.0.0"],
+    occultFeatureGate: "OCCULT_ENABLED",
   },
   build: {
     bun: {

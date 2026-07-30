@@ -29,7 +29,16 @@ class FakeBridge implements HermesOccultBridge {
     this.calls.push(invocation);
     if (this.hang) {
       await new Promise<void>((_resolve, reject) => {
-        options.signal.addEventListener("abort", () => reject(options.signal.reason), { once: true });
+        const rejectOnAbort = () => reject(options.signal.reason);
+        if (options.signal.aborted) {
+          rejectOnAbort();
+          return;
+        }
+        options.signal.addEventListener("abort", rejectOnAbort, { once: true });
+        if (options.signal.aborted) {
+          options.signal.removeEventListener("abort", rejectOnAbort);
+          rejectOnAbort();
+        }
       });
     }
     const nodeId = invocation.metadata.node_id ?? "node";
@@ -45,7 +54,14 @@ class FakeBridge implements HermesOccultBridge {
         fallback_count: 0,
         explanation: "Sensitive internal route explanation.",
       },
-      artifacts: [],
+      artifacts: [
+        {
+          artifact_id: `artifact-${nodeId}`,
+          name: `${nodeId}.md`,
+          media_type: "text/markdown",
+          uri: `https://artifacts.example/${nodeId}.md?token=super-secret-value#private`,
+        },
+      ],
     };
   }
 }
@@ -102,6 +118,17 @@ describe("Occult interface service", () => {
       enabled: false,
       session_id: harness.sessionId,
       readings: [],
+      observability: {
+        bridge: {
+          configured: false,
+          status: "disabled",
+          last_success_at: null,
+          last_failure_at: null,
+        },
+        readings: { total: 0, running: 0, completed: 0, failed: 0, cancelled: 0 },
+        nodes: { failed: 0, average_invocation_latency_ms: null, maximum_invocation_latency_ms: null },
+        audit: { event_count: 0, redacted_error_count: 0 },
+      },
     });
     await expect(
       service.execute({
@@ -152,6 +179,19 @@ describe("Occult interface service", () => {
     expect(serialized).not.toContain("secret prompt");
     expect(serialized).not.toContain("Sensitive internal route explanation");
     expect(serialized).not.toContain("api_key");
+    const persisted = JSON.stringify(await harness.store.load());
+    expect(persisted).not.toContain("secret prompt");
+    expect(persisted).not.toContain("Sensitive internal route explanation");
+    expect(persisted).not.toContain("super-secret-value");
+    expect(persisted).toContain(`https://artifacts.example/build.md`);
+    const status = await new OccultInterfaceService(
+      harness.store,
+      { ...enabledConfig, hermesBaseUrl: "http://hermes.internal" },
+      () => harness.bridge,
+    ).status("host", harness.sessionId);
+    expect(status.observability.bridge.status).toBe("healthy");
+    expect(status.observability.readings.completed).toBe(1);
+    expect(status.observability.audit.event_count).toBeGreaterThan(0);
     expect(
       (
         await harness.service.inspect({

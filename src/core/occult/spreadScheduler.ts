@@ -202,6 +202,9 @@ export class TarotSpreadScheduler {
     let timedOut = false;
     const abortFromOuter = () => controller.abort(outerSignal?.reason);
     outerSignal?.addEventListener("abort", abortFromOuter, { once: true });
+    if (outerSignal?.aborted) {
+      abortFromOuter();
+    }
     const timeout = setTimeout(() => {
       timedOut = true;
       controller.abort(new Error("Hermes invocation timeout"));

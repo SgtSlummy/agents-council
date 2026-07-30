@@ -138,6 +138,15 @@ jobs:
 
           ls -la bundle/cli
           ls -la bundle/desktop-artifacts
+      - name: Generate Occult manifest and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF##refs/tags/v}"
+          bun scripts/generateOccultReleaseManifest.ts \
+            --root bundle \
+            --version "$TAG" \
+            --package "${{ matrix.package }}"
       - uses: actions/upload-artifact@v6
         with:
           name: release-${{ matrix.package }}
@@ -174,6 +183,10 @@ jobs:
                 "agents-council-darwin-x64": "'$TAG'",
                 "agents-council-darwin-arm64": "'$TAG'",
                 "agents-council-windows-x64": "'$TAG'"
+              } |
+              .occult = {
+                "contractVersions": ["1.0.0"],
+                "featureGate": "OCCULT_ENABLED"
               }' package.json > dist/package.json
           cp LICENSE README.md dist/ 2>/dev/null || true
       - uses: actions/setup-node@v6
@@ -241,6 +254,7 @@ jobs:
           mkdir -p pkg/desktop-artifacts
           cp "bundle/cli/council${BINARY_EXT}" "pkg/council${BINARY_EXT}"
           cp bundle/desktop-artifacts/* pkg/desktop-artifacts/
+          cp bundle/occult-release-manifest.json bundle/SHA256SUMS.txt pkg/
           cp LICENSE README.md pkg/ 2>/dev/null || true
           TAG="$TAG" node <<'NODE'
           const fs = require("node:fs");
@@ -255,7 +269,19 @@ jobs:
             version: tag,
             os: [os],
             cpu: [cpu],
-            files: [binaryName, "desktop-artifacts/*", "package.json", "README.md", "LICENSE"],
+            files: [
+              binaryName,
+              "desktop-artifacts/*",
+              "occult-release-manifest.json",
+              "SHA256SUMS.txt",
+              "package.json",
+              "README.md",
+              "LICENSE",
+            ],
+            occult: {
+              contractVersions: ["1.0.0"],
+              featureGate: "OCCULT_ENABLED",
+            },
             repository: {
               type: "git",
               url: "https://github.com/MrLesk/agents-council",
@@ -318,6 +344,7 @@ jobs:
           done
           ./node_modules/.bin/council --version
           ./node_modules/.bin/council --help
+          node -e 'const p=require("agents-council/package.json");if(!p.occult?.contractVersions?.includes("1.0.0"))process.exit(1)'
           ./node_modules/.bin/council mcp --agent-name install-sanity >mcp.log 2>&1 &
           MCP_PID=$!
           sleep 3
@@ -346,6 +373,7 @@ jobs:
           }
           & .\node_modules\.bin\council.cmd --version
           & .\node_modules\.bin\council.cmd --help
+          node -e 'const p=require("agents-council/package.json");if(!p.occult?.contractVersions?.includes("1.0.0"))process.exit(1)'
 
           $stdoutLog = "mcp.stdout.log"
           $stderrLog = "mcp.stderr.log"
@@ -365,6 +393,7 @@ jobs:
     needs: install-sanity
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
       - uses: actions/download-artifact@v7
         with:
           pattern: release-agents-council-*
@@ -375,12 +404,19 @@ jobs:
           set -euo pipefail
           mkdir -p desktop-release-assets
           find release-assets -type f -path "*/desktop-artifacts/*" -print -exec cp {} desktop-release-assets/ \;
+          for bundle in release-assets/release-agents-council-*; do
+            label="$(basename "$bundle" | sed 's/^release-//')"
+            cp "$bundle/occult-release-manifest.json" "desktop-release-assets/${label}-occult-release-manifest.json"
+            cp "$bundle/SHA256SUMS.txt" "desktop-release-assets/${label}-SHA256SUMS.txt"
+          done
+          cp CHANGELOG.md docs/occult-production-release.md desktop-release-assets/
           ls -la desktop-release-assets
           ls desktop-release-assets/stable-macos-* >/dev/null
           ls desktop-release-assets/stable-linux-* >/dev/null
           ls desktop-release-assets/stable-win-* >/dev/null
       - uses: softprops/action-gh-release@v2
         with:
+          body_path: CHANGELOG.md
           files: desktop-release-assets/*
 
   update-version:

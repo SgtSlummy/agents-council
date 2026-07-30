@@ -16,7 +16,17 @@ export function OccultReadingsPanel({ status }: OccultReadingsPanelProps) {
           <span className="occult-eyebrow">Occult System</span>
           <h3>Active Readings</h3>
         </div>
-        <span className="occult-contract">Contract {status.contract_version}</span>
+        <div className="occult-health">
+          <span className={`occult-state occult-state-${status.observability.bridge.status}`}>
+            Bridge {status.observability.bridge.status}
+          </span>
+          <span className="occult-contract">
+            Contract {status.contract_version}
+            {status.observability.nodes.average_invocation_latency_ms === null
+              ? ""
+              : ` / avg ${status.observability.nodes.average_invocation_latency_ms} ms`}
+          </span>
+        </div>
       </header>
 
       {status.readings.length === 0 ? (

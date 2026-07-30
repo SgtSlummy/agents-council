@@ -2318,6 +2318,12 @@ body::before {
   gap: 0.2rem;
 }
 
+.occult-health {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: end;
+}
+
 .occult-reading-card header div span,
 .occult-pairing,
 .occult-contract,
@@ -2394,6 +2400,10 @@ body::before {
   .occult-reading-card > header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .occult-health {
+    justify-items: start;
   }
 
   .occult-node {

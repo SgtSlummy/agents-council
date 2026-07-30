@@ -13,6 +13,14 @@ import {
   validateRouteSummary,
 } from "./contract";
 import type { RouteSummary } from "./contract";
+import {
+  assertSafeOccultIdentifier,
+  sanitizePersistedArtifact,
+  sanitizePersistedError,
+  sanitizePersistedEventData,
+  sanitizePersistedOutcome,
+  sanitizePersistedRouteSummary,
+} from "./persistenceSecurity";
 import type {
   OccultReading,
   OccultReadingArtifact,
@@ -253,8 +261,8 @@ export class OccultReadingService {
         sequence: reading.nextSequence,
         event_type: input.eventType,
         occurred_at: now,
-        data: input.data ?? {},
-        error: input.error ?? null,
+        data: sanitizePersistedEventData(input.eventType, input.data ?? {}),
+        error: sanitizePersistedError(input.error ? occultErrorSchema.parse(input.error) : null),
       });
       const terminalState = TERMINAL_EVENT_TYPES.get(event.event_type);
       const outcome = terminalState ? createOutcome(terminalState, now, event.data, event.error) : null;
@@ -303,7 +311,7 @@ export class OccultReadingService {
   }
 
   async completeNode(input: CompleteOccultNodeInput): Promise<OccultReading> {
-    const routeSummary = validateRouteSummary(input.routeSummary);
+    const routeSummary = sanitizePersistedRouteSummary(validateRouteSummary(input.routeSummary));
     return this.updateRunningReading(input.readingId, (reading, now) => {
       const node = requireNode(reading, input.nodeId);
       if (node.state === "completed") {
@@ -317,11 +325,14 @@ export class OccultReadingService {
         throw new OccultReadingTransitionError(`Cannot complete Occult node in ${node.state} state: ${input.nodeId}`);
       }
 
-      const artifacts = (input.artifacts ?? []).map<OccultReadingArtifact>((artifact) => ({
-        ...artifact,
-        nodeId: input.nodeId,
-        createdAt: now,
-      }));
+      const artifacts = (input.artifacts ?? []).map<OccultReadingArtifact>((artifact) => {
+        const sanitized = sanitizePersistedArtifact(artifact);
+        return {
+          ...sanitized,
+          nodeId: input.nodeId,
+          createdAt: now,
+        };
+      });
       const updatedNode: OccultReadingNode = {
         ...node,
         state: "completed",
@@ -352,7 +363,7 @@ export class OccultReadingService {
   }
 
   async failNode(readingId: string, nodeId: string, error: z.input<typeof occultErrorSchema>): Promise<OccultReading> {
-    const parsedError = occultErrorSchema.parse(error);
+    const parsedError = sanitizePersistedError(occultErrorSchema.parse(error));
     return this.updateRunningReading(readingId, (reading, now) => {
       const node = requireNode(reading, nodeId);
       if (node.state === "completed" || node.state === "cancelled") {
@@ -481,7 +492,7 @@ export class OccultReadingService {
         now,
         this.idFactory(),
         { summary },
-        error ? occultErrorSchema.parse(error) : null,
+        sanitizePersistedError(error ? occultErrorSchema.parse(error) : null),
       );
       return {
         state: replaceReading(storeState, index, updated),
@@ -527,8 +538,8 @@ function appendReadingEvent(
     sequence: reading.nextSequence,
     event_type: eventType,
     occurred_at: now,
-    data,
-    error,
+    data: sanitizePersistedEventData(eventType, data),
+    error: sanitizePersistedError(error),
   });
   const terminalState = TERMINAL_EVENT_TYPES.get(event.event_type);
   return {
@@ -609,7 +620,25 @@ export function normalizeOccultReadings(input: unknown, sessions: CouncilSession
 
     return {
       ...result.data,
-      events: result.data.events.map((event) => validateReadingEvent(event)),
+      nodes: result.data.nodes.map((node) => ({
+        ...node,
+        nodeId: assertSafeOccultIdentifier(node.nodeId, "node.id"),
+        agentId: assertSafeOccultIdentifier(node.agentId, "node.agent_id"),
+      })),
+      events: result.data.events.map((event) =>
+        validateReadingEvent({
+          ...event,
+          data: sanitizePersistedEventData(event.event_type, event.data),
+          error: sanitizePersistedError(event.error),
+        }),
+      ),
+      routeSummaries: result.data.routeSummaries.map(sanitizePersistedRouteSummary),
+      artifacts: result.data.artifacts.map((artifact) => ({
+        ...artifact,
+        ...sanitizePersistedArtifact(artifact),
+        nodeId: assertSafeOccultIdentifier(artifact.nodeId, "artifact.node_id"),
+      })),
+      outcome: sanitizePersistedOutcome(result.data.outcome),
     };
   });
 
@@ -716,7 +745,13 @@ function parseStartReadingInput(input: StartOccultReadingInput): z.output<typeof
   }
 
   const nodeIds = new Set<string>();
+  assertSafeOccultIdentifier(result.data.councilSessionId, "reading.session_id");
+  assertSafeOccultIdentifier(result.data.spreadId, "reading.spread_id");
+  assertSafeOccultIdentifier(result.data.spreadVersion, "reading.spread_version");
+  assertSafeOccultIdentifier(result.data.idempotencyKey, "reading.idempotency_key");
   for (const node of result.data.nodes) {
+    assertSafeOccultIdentifier(node.nodeId, "node.id");
+    assertSafeOccultIdentifier(node.agentId, "node.agent_id");
     if (nodeIds.has(node.nodeId)) {
       throw new Error(`Duplicate Occult reading node id: ${node.nodeId}`);
     }

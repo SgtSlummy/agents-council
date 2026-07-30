@@ -15,6 +15,7 @@ import type {
   OccultReadingDto,
   OccultStatusResponse,
 } from "./types";
+import { buildOccultObservability } from "./observability";
 
 export class OccultInterfaceError extends Error {
   constructor(
@@ -53,6 +54,7 @@ export class OccultInterfaceService {
         enabled: false,
         session_id: sessionId ?? null,
         readings: [],
+        observability: buildOccultObservability(this.config, []),
       };
     }
     const state = await this.store.load();
@@ -63,16 +65,17 @@ export class OccultInterfaceService {
         enabled: true,
         session_id: null,
         readings: [],
+        observability: buildOccultObservability(this.config, []),
       };
     }
     assertAuthorized(state, resolvedSessionId, agentName);
+    const readings = state.occultReadings.filter((reading) => reading.councilSessionId === resolvedSessionId);
     return {
       contract_version: OCCULT_CONTRACT_VERSION,
       enabled: true,
       session_id: resolvedSessionId,
-      readings: state.occultReadings
-        .filter((reading) => reading.councilSessionId === resolvedSessionId)
-        .map((reading) => mapReading(reading)),
+      readings: readings.map((reading) => mapReading(reading)),
+      observability: buildOccultObservability(this.config, readings),
     };
   }
 

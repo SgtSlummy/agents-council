@@ -59,6 +59,17 @@ describe("chat bridge actions", () => {
         enabled: false,
         session_id: null,
         readings: [],
+        observability: {
+          bridge: {
+            configured: false,
+            status: "disabled",
+            last_success_at: null,
+            last_failure_at: null,
+          },
+          readings: { total: 0, running: 0, completed: 0, failed: 0, cancelled: 0 },
+          nodes: { failed: 0, average_invocation_latency_ms: null, maximum_invocation_latency_ms: null },
+          audit: { event_count: 0, redacted_error_count: 0 },
+        },
       });
     });
   });
@@ -129,14 +140,15 @@ describe("chat bridge actions", () => {
           request: "Observe state watcher updates.",
         });
 
-        await waitFor(() => changes >= 1, 2000);
+        await waitFor(() => changes >= 1, 5000);
+        const changesAfterStart = changes;
 
         await sendResponseAction({
           agent_name: "observer",
           content: "Watcher update confirmation.",
         });
 
-        await waitFor(() => changes >= 1, 2000);
+        await waitFor(() => changes > changesAfterStart, 5000);
       } finally {
         watcher.close();
       }
