@@ -164,3 +164,27 @@ This slice does not change the version 3 persisted schema.
 
 Rolling back does not undo work already performed by Hermes or external tools.
 Review completed artifacts and Hermes audit records separately.
+
+## Cross-repository production gate
+
+Hermes owns the gate because it starts the authenticated, local-only runtime
+used by the test. From the matching Hermes checkout, set
+`AGENTS_COUNCIL_ROOT` to this checkout and run:
+
+```text
+scripts/run_tests.sh tests/agent/occult/test_council_transport_e2e.py -q
+```
+
+On Windows, where the Bash wrapper is unavailable, use the documented Hermes
+native-Python fallback with four workers.
+
+The gate starts the real Hermes HTTP adapter with an in-process local mock
+provider, then runs `bun run test:occult-hermes-e2e` in this checkout. The
+Council runner executes a build-review-synthesis spread, pauses at the review
+approval, recreates its file-backed services, approves and resumes the same
+reading, and proves that the completed build node was not invoked twice. It
+also requires one terminal event and verifies that the bearer token and
+secret-shaped fields do not appear in the returned DTO.
+
+Both checkouts must implement Occult contract `1.0.0`. This gate is required
+before promoting a release candidate containing either side of the bridge.

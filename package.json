@@ -31,6 +31,7 @@
     "desktop:build:stable": "electrobun build --env=stable",
     "test": "bun test",
     "release:manifest": "bun scripts/generateOccultReleaseManifest.ts",
+    "test:occult-hermes-e2e": "bun scripts/occultHermesE2E.ts",
     "lint": "biome lint .",
     "format": "biome format --write .",
     "format:check": "biome check --formatter-enabled=true --linter-enabled=false .",
