@@ -23,7 +23,7 @@ async function createStatePath(): Promise<string> {
 }
 
 describe("FileCouncilStateStore migration and safety", () => {
-  test("migrates legacy v1 state to canonical multi-session v2 state", async () => {
+  test("migrates legacy v1 state to canonical v3 state without creating readings", async () => {
     const statePath = await createStatePath();
     const legacy = {
       version: 1,
@@ -67,7 +67,7 @@ describe("FileCouncilStateStore migration and safety", () => {
     const store = new FileCouncilStateStore(statePath);
     const migrated = await store.load();
 
-    expect(migrated.version).toBe(2);
+    expect(migrated.version).toBe(3);
     expect(migrated.activeSessionId).toBe("legacy-session");
     expect(migrated.sessions).toHaveLength(1);
     expect(migrated.requests).toHaveLength(1);
@@ -76,14 +76,65 @@ describe("FileCouncilStateStore migration and safety", () => {
     expect(migrated.requests[0]?.sessionId).toBe("legacy-session");
     expect(migrated.feedback[0]?.sessionId).toBe("legacy-session");
     expect(migrated.participants[0]?.sessionId).toBe("legacy-session");
+    expect(migrated.occultReadings).toEqual([]);
 
     await store.update((state) => ({ state, result: undefined }));
 
     const persisted = JSON.parse(await readFile(statePath, "utf8")) as Record<string, unknown>;
-    expect(persisted.version).toBe(2);
+    expect(persisted.version).toBe(3);
     expect(Array.isArray(persisted.sessions)).toBe(true);
+    expect(persisted.occultReadings).toEqual([]);
     expect(persisted.activeSessionId).toBe("legacy-session");
     expect(persisted.session).toBeUndefined();
+  });
+
+  test("migrates multi-session v2 state without data loss or active readings", async () => {
+    const statePath = await createStatePath();
+    const v2State = {
+      version: 2,
+      activeSessionId: "session-v2",
+      sessions: [
+        {
+          id: "session-v2",
+          status: "active" as const,
+          createdAt: "2026-07-27T12:00:00.000Z",
+          currentRequestId: "request-v2",
+          conclusion: null,
+        },
+      ],
+      requests: [
+        {
+          id: "request-v2",
+          sessionId: "session-v2",
+          content: "preserve this request",
+          createdBy: "host",
+          createdAt: "2026-07-27T12:00:00.000Z",
+          status: "open" as const,
+        },
+      ],
+      feedback: [],
+      participants: [
+        {
+          sessionId: "session-v2",
+          agentName: "host",
+          lastSeen: "2026-07-27T12:00:00.000Z",
+          lastRequestSeen: "request-v2",
+          lastFeedbackSeen: null,
+        },
+      ],
+    };
+    await writeFile(statePath, `${JSON.stringify(v2State, null, 2)}\n`, "utf8");
+
+    const store = new FileCouncilStateStore(statePath);
+    const migrated = await store.load();
+
+    expect(migrated.version).toBe(3);
+    expect(migrated.activeSessionId).toBe("session-v2");
+    expect(migrated.sessions).toEqual(v2State.sessions);
+    expect(migrated.requests).toEqual(v2State.requests);
+    expect(migrated.feedback).toEqual(v2State.feedback);
+    expect(migrated.participants).toEqual(v2State.participants);
+    expect(migrated.occultReadings).toEqual([]);
   });
 
   test("does not overwrite malformed JSON state files", async () => {

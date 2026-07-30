@@ -321,6 +321,11 @@ State is stored at:
 ~/.agents-council/state.json
 ```
 
+State schema version 3 stores ordinary multi-session Council data plus
+feature-gated Occult reading records. Version 1 and version 2 files migrate
+without creating readings. See `docs/occult-reading-state.md` for the storage,
+backup, restore, migration, integrity, and rollback contract.
+
 Summon settings are stored alongside state at:
 
 ```

@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 
+import { normalizeOccultReadings } from "../occult/readingState";
 import type {
   CouncilConclusion,
   CouncilFeedback,
@@ -12,7 +13,8 @@ import { ensureFileDirectory, withFileLock, writeJsonFileAtomic } from "./fileSt
 import { resolveCouncilStatePath } from "./path";
 import type { CouncilStateStore, CouncilStateUpdater } from "./store";
 
-const DEFAULT_STATE_VERSION = 2;
+const DEFAULT_STATE_VERSION = 3;
+const MULTI_SESSION_STATE_VERSION = 2;
 const LEGACY_STATE_VERSION = 1;
 const LEGACY_MIGRATION_SESSION_ID = "legacy-session-1";
 
@@ -102,8 +104,8 @@ async function readStateJson(statePath: string): Promise<unknown> {
 }
 
 function normalizeCouncilState(input: unknown): CouncilState {
-  if (isCouncilStateV2Candidate(input)) {
-    const normalized = normalizeCouncilStateV2(input);
+  if (isCurrentCouncilStateCandidate(input)) {
+    const normalized = normalizeCurrentCouncilState(input);
     assertCouncilStateIntegrity(normalized);
     return normalized;
   }
@@ -125,16 +127,21 @@ function createInitialState(): CouncilState {
     requests: [],
     feedback: [],
     participants: [],
+    occultReadings: [],
   };
 }
 
-function isCouncilStateV2Candidate(input: unknown): input is Record<string, unknown> {
-  return (
-    isRecord(input) && (input.version === DEFAULT_STATE_VERSION || "sessions" in input || "activeSessionId" in input)
-  );
+function isCurrentCouncilStateCandidate(input: unknown): input is Record<string, unknown> {
+  if (!isRecord(input)) {
+    return false;
+  }
+  if (input.version === DEFAULT_STATE_VERSION || input.version === MULTI_SESSION_STATE_VERSION) {
+    return true;
+  }
+  return input.version === undefined && ("sessions" in input || "activeSessionId" in input);
 }
 
-function normalizeCouncilStateV2(input: Record<string, unknown>): CouncilState {
+function normalizeCurrentCouncilState(input: Record<string, unknown>): CouncilState {
   const sessions = normalizeSessions(input.sessions, "sessions");
   const requests = normalizeRequests(input.requests, "requests");
   const feedback = normalizeFeedback(input.feedback, "feedback");
@@ -166,6 +173,9 @@ function normalizeCouncilStateV2(input: Record<string, unknown>): CouncilState {
       currentRequestId,
     };
   });
+  const occultReadingsInput =
+    input.version === DEFAULT_STATE_VERSION || "occultReadings" in input ? input.occultReadings : [];
+  const occultReadings = normalizeOccultReadings(occultReadingsInput, normalizedSessions);
 
   return {
     version: DEFAULT_STATE_VERSION,
@@ -174,6 +184,7 @@ function normalizeCouncilStateV2(input: Record<string, unknown>): CouncilState {
     requests,
     feedback,
     participants,
+    occultReadings,
   };
 }
 
@@ -247,6 +258,7 @@ function migrateLegacyCouncilStateV1(input: LegacyCouncilStateV1): CouncilState 
     requests: requestsWithFeedback,
     feedback,
     participants,
+    occultReadings: [],
   };
 }
 

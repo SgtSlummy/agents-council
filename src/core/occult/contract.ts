@@ -185,7 +185,9 @@ export const readingEventSchema = z.strictObject({
 });
 
 export type OccultInvocation = z.infer<typeof occultInvocationSchema>;
+export type OccultError = z.infer<typeof occultErrorSchema>;
 export type ReadingEvent = z.infer<typeof readingEventSchema>;
+export type RouteSummary = z.infer<typeof routeSummarySchema>;
 
 export function isOccultEnabled(config: unknown): boolean {
   if (!isRecord(config)) {
@@ -213,7 +215,7 @@ export function validateReadingEventStream(payloads: unknown): ReadingEvent[] {
     throw new InvalidContractPayload("event stream must not be empty");
   }
 
-  const events = payloads.map((payload) => validatePayload(readingEventSchema, payload, "ReadingEvent"));
+  const events = payloads.map((payload) => validateReadingEvent(payload));
   const readingIds = new Set(events.map((event) => event.reading_id));
   if (readingIds.size !== 1) {
     throw new InvalidContractPayload("event stream mixes reading ids");
@@ -234,6 +236,10 @@ export function validateReadingEventStream(payloads: unknown): ReadingEvent[] {
   }
 
   return events;
+}
+
+export function validateReadingEvent(payload: unknown): ReadingEvent {
+  return validatePayload(readingEventSchema, payload, "ReadingEvent");
 }
 
 function validatePayload<T>(schema: z.ZodType<T>, payload: unknown, modelName: string): T {
