@@ -9,6 +9,23 @@
 Status: <code>Experimental</code>
 </p>
 
+### Occult production spread
+
+Agents Council can coordinate the signed Major Arcana runtime in Hermes. Start
+Hermes locally, then enable the Council bridge:
+
+```bash
+export OCCULT_ENABLED=true
+export OCCULT_HERMES_URL=http://127.0.0.1:8642
+export OCCULT_HERMES_SERVICE_TOKEN=<scoped Hermes token>
+council occult create --session-id <session> --agent-name <participant> --plan examples/occult/production-build.json
+```
+
+On Windows `cmd`, use `set` instead of `export`. The bridge never stores or
+returns the service token, provider credentials, prompts, or raw route
+explanations. Occult remains invisible when the feature flag is not exactly
+`true`.
+
 ---
 
 ## 🏛️ Overview
@@ -42,7 +59,11 @@ Inspired by Andrej Karpathy's [LLM Council](https://github.com/karpathy/llm-coun
 If you only need agent-to-agent communication, skip to MCP Setup. Install the CLI only for the desktop app and global `council` command.
 
 ### 2. Desktop App & CLI
-If you want to participate via the desktop app or use the `council` command globally, install the package:
+
+Download the installer or standalone CLI for your platform from
+[GitHub Releases](https://github.com/SgtSlummy/agents-council/releases).
+The upstream npm package remains usable for ordinary Council mode, but it does
+not include this fork's Occult features:
 
 ```bash
 npm install -g agents-council
@@ -58,7 +79,7 @@ council mcp    # terminal MCP server mode
 
 ### 3. Distribution Model
 
-Releases keep a single user-facing npm package (`agents-council`) backed by platform optional dependencies:
+This fork publishes verified GitHub bundles for:
 
 - `agents-council-linux-x64`
 - `agents-council-linux-arm64`
@@ -66,12 +87,14 @@ Releases keep a single user-facing npm package (`agents-council`) backed by plat
 - `agents-council-darwin-arm64`
 - `agents-council-windows-x64`
 
-Each platform package ships:
+Each platform bundle ships:
 
 - the `council` CLI binary for terminal mode (`--help`, `--version`, `mcp`), and
 - Electrobun desktop artifacts in `desktop-artifacts/` for native installer/update distribution.
 
-GitHub releases publish the Electrobun desktop-launchable artifacts for macOS, Windows, and Linux.
+Each release also includes an Occult compatibility manifest and SHA-256
+checksums. npm publication is intentionally separate from the GitHub release
+gate and is not required to download or verify the application.
 
 ---
 

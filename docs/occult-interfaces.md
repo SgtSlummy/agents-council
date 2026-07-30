@@ -21,7 +21,7 @@ credentials, service tokens, or authorization headers.
 
 ```text
 OCCULT_ENABLED=true
-OCCULT_HERMES_URL=http://127.0.0.1:8787
+OCCULT_HERMES_URL=http://127.0.0.1:8642
 OCCULT_HERMES_SERVICE_TOKEN=<optional service token>
 ```
 

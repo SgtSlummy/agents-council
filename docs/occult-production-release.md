@@ -3,8 +3,8 @@
 ## Release contract
 
 Agents Council supports Occult contract `1.0.0`. Occult remains fail-closed
-unless `OCCULT_ENABLED=true`. The Electrobun runtime, root npm package, platform
-npm packages, and generated release manifests declare this compatibility.
+unless `OCCULT_ENABLED=true`. The source package metadata, Electrobun runtime,
+and generated release manifests declare this compatibility.
 
 No state migration is introduced. Occult readings remain part of Council state
 schema version 3.
@@ -95,9 +95,10 @@ Verify one entry on PowerShell:
 Get-FileHash .\cli\council.exe -Algorithm SHA256
 ```
 
-Compare the value with `SHA256SUMS.txt`. Release CI attaches platform-labeled
-manifests and checksum files to the GitHub release and includes them in each
-platform npm package.
+Compare the value with `SHA256SUMS.txt`. Release CI includes the CLI, native
+desktop artifacts, manifest, and checksums in each platform archive, and
+attaches platform-labeled manifests and checksum files separately to the
+GitHub release.
 
 ## Upgrade
 
@@ -161,7 +162,7 @@ down-migration.
 - [ ] Changelog and operator upgrade notes are current.
 - [ ] Windows, macOS, and Linux CI matrices are green.
 - [ ] Tests, lint, typecheck, format, CLI, and Electrobun gates are green.
-- [ ] Root plus five platform npm dry runs contain expected files.
+- [ ] All five native build-matrix payloads contain the expected files.
 - [ ] Package metadata declares Occult contract `1.0.0`.
 - [ ] Manifests and checksums exist for every platform payload.
 - [ ] No state/config/key/credential file is present in any payload.

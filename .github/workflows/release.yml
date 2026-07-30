@@ -1,80 +1,75 @@
-name: Release desktop+CLI packages
+name: Release desktop and CLI packages
 
 on:
   push:
     tags: ["v*.*.*"]
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   build:
     name: build-${{ matrix.package }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
             platform: linux
             arch: x64
             package: agents-council-linux-x64
-            npm_os: linux
-            npm_cpu: x64
             binary_ext: ""
           - runner: ubuntu-24.04-arm
             platform: linux
             arch: arm64
             package: agents-council-linux-arm64
-            npm_os: linux
-            npm_cpu: arm64
             binary_ext: ""
-          - runner: macos-13
+          - runner: macos-15-intel
             platform: macos
             arch: x64
             package: agents-council-darwin-x64
-            npm_os: darwin
-            npm_cpu: x64
             binary_ext: ""
           - runner: macos-14
             platform: macos
             arch: arm64
             package: agents-council-darwin-arm64
-            npm_os: darwin
-            npm_cpu: arm64
             binary_ext: ""
           - runner: windows-latest
             platform: win
             arch: x64
             package: agents-council-windows-x64
-            npm_os: win32
-            npm_cpu: x64
             binary_ext: .exe
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          bun-version: latest
-      - uses: actions/cache@v5
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-${{ matrix.package }}-bun-latest-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.package }}-bun-latest-
-      - run: bun install --frozen-lockfile --linker=isolated
-      - name: Sync package version to tag
+          bun-version: 1.3.9
+      - name: Install frozen dependencies
+        run: bun install --frozen-lockfile --linker=isolated
+      - name: Verify source version matches tag
         shell: bash
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF##refs/tags/v}"
-          TAG="$TAG" node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version=process.env.TAG;fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');"
+          SOURCE_VERSION="$(bun -e "console.log(require('./package.json').version)")"
+          test "$SOURCE_VERSION" = "$TAG"
+      - name: Typecheck and test
+        run: |
+          bun run typecheck
+          bun run format:check
+          bun test
       - name: Build standalone CLI binary
         shell: bash
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF##refs/tags/v}"
           mkdir -p dist
-          bun build src/cli/index.ts --compile --minify --define __COUNCIL_VERSION__="\"${TAG}\"" --outfile="dist/council${{ matrix.binary_ext }}"
+          bun build src/cli/index.ts --compile --minify \
+            --define __COUNCIL_VERSION__="\"${TAG}\"" \
+            --outfile="dist/council${{ matrix.binary_ext }}"
       - name: Smoke-test CLI binary
         shell: bash
         run: |
@@ -85,59 +80,32 @@ jobs:
           fi
           "./$CLI_BIN" --version
           "./$CLI_BIN" --help
-      - name: Build Electrobun stable desktop artifacts
+      - name: Build stable desktop artifacts
         shell: bash
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF##refs/tags/v}"
           AGENTS_COUNCIL_VERSION="$TAG" bunx electrobun build --env=stable
-      - name: Collect release payload
+      - name: Assemble release payload
         shell: bash
         run: |
           set -euo pipefail
           PREFIX="stable-${{ matrix.platform }}-${{ matrix.arch }}-"
           mkdir -p bundle/cli bundle/desktop-artifacts
           cp "dist/council${{ matrix.binary_ext }}" "bundle/cli/council${{ matrix.binary_ext }}"
+          if [[ ! -d artifacts ]] || ! compgen -G "artifacts/${PREFIX}*" > /dev/null; then
+            echo "Missing Electrobun artifacts for ${PREFIX}" >&2
+            exit 1
+          fi
           find artifacts -maxdepth 1 -type f -name "${PREFIX}*" -exec cp {} bundle/desktop-artifacts/ \;
-
-          DESKTOP_COUNT=$(find bundle/desktop-artifacts -maxdepth 1 -type f | wc -l | tr -d ' ')
-          if [[ "$DESKTOP_COUNT" -eq 0 ]]; then
-            echo "No desktop artifacts found for prefix ${PREFIX}"
-            ls -la artifacts || true
-            exit 1
-          fi
-
-          UPDATE_COUNT=$(find bundle/desktop-artifacts -maxdepth 1 -type f -name "${PREFIX}*update.json" | wc -l | tr -d ' ')
-          BUNDLE_COUNT=$(find bundle/desktop-artifacts -maxdepth 1 -type f -name "${PREFIX}*.tar.zst" | wc -l | tr -d ' ')
-          if [[ "$UPDATE_COUNT" -eq 0 || "$BUNDLE_COUNT" -eq 0 ]]; then
-            echo "Incomplete desktop artifact set for ${PREFIX}"
-            ls -la bundle/desktop-artifacts
-            exit 1
-          fi
-
+          test "$(find bundle/desktop-artifacts -maxdepth 1 -type f | wc -l | tr -d ' ')" -gt 0
+          test "$(find bundle/desktop-artifacts -maxdepth 1 -type f -name "${PREFIX}*update.json" | wc -l | tr -d ' ')" -gt 0
+          test "$(find bundle/desktop-artifacts -maxdepth 1 -type f -name "${PREFIX}*.tar.zst" | wc -l | tr -d ' ')" -gt 0
           case "${{ matrix.platform }}" in
-            macos)
-              INSTALLER_COUNT=$(find bundle/desktop-artifacts -maxdepth 1 -type f -name "${PREFIX}*.dmg" | wc -l | tr -d ' ')
-              ;;
-            linux)
-              INSTALLER_COUNT=$(find bundle/desktop-artifacts -maxdepth 1 -type f -name "${PREFIX}*Setup*.tar.gz" | wc -l | tr -d ' ')
-              ;;
-            win)
-              INSTALLER_COUNT=$(find bundle/desktop-artifacts -maxdepth 1 -type f -name "${PREFIX}*Setup*.zip" | wc -l | tr -d ' ')
-              ;;
-            *)
-              echo "Unsupported platform: ${{ matrix.platform }}"
-              exit 1
-              ;;
+            macos) test "$(find bundle/desktop-artifacts -type f -name "${PREFIX}*.dmg" | wc -l | tr -d ' ')" -gt 0 ;;
+            linux) test "$(find bundle/desktop-artifacts -type f -name "${PREFIX}*Setup*.tar.gz" | wc -l | tr -d ' ')" -gt 0 ;;
+            win) test "$(find bundle/desktop-artifacts -type f -name "${PREFIX}*Setup*.zip" | wc -l | tr -d ' ')" -gt 0 ;;
           esac
-          if [[ "$INSTALLER_COUNT" -eq 0 ]]; then
-            echo "Missing installer for ${PREFIX}"
-            ls -la bundle/desktop-artifacts
-            exit 1
-          fi
-
-          ls -la bundle/cli
-          ls -la bundle/desktop-artifacts
       - name: Generate Occult manifest and checksums
         shell: bash
         run: |
@@ -147,293 +115,64 @@ jobs:
             --root bundle \
             --version "$TAG" \
             --package "${{ matrix.package }}"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-${{ matrix.package }}
           path: bundle
-
-  npm-publish:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Prepare root npm package payload
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-          cp scripts/cli.cjs dist/cli.js
-          cp scripts/resolveBinary.cjs dist/resolveBinary.cjs
-          cp scripts/postuninstall.cjs dist/postuninstall.cjs
-          chmod +x dist/cli.js
-      - name: Create npm-ready root package.json
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF##refs/tags/v}"
-          jq 'del(.devDependencies,.scripts.prepare,.scripts.preinstall,.type) |
-              .version = "'$TAG'" |
-              .bin = {council:"cli.js"} |
-              .files = ["cli.js","resolveBinary.cjs","postuninstall.cjs","package.json","README.md","LICENSE"] |
-              .scripts = {"postuninstall": "node postuninstall.cjs"} |
-              .repository = {"type":"git","url":"https://github.com/MrLesk/agents-council"} |
-              .optionalDependencies = {
-                "agents-council-linux-x64": "'$TAG'",
-                "agents-council-linux-arm64": "'$TAG'",
-                "agents-council-darwin-x64": "'$TAG'",
-                "agents-council-darwin-arm64": "'$TAG'",
-                "agents-council-windows-x64": "'$TAG'"
-              } |
-              .occult = {
-                "contractVersions": ["1.0.0"],
-                "featureGate": "OCCULT_ENABLED"
-              }' package.json > dist/package.json
-          cp LICENSE README.md dist/ 2>/dev/null || true
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-      - name: Configure npm for trusted publishing
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install -g npm@11.7.0
-          npm --version
-      - name: Dry run trusted publish
-        shell: bash
-        run: |
-          cd dist
-          npm publish --access public --dry-run
-      - name: Publish root package
-        shell: bash
-        run: |
-          cd dist
-          npm publish --access public
-
-  publish-platform-packages:
-    needs: [build, npm-publish]
-    strategy:
-      matrix:
-        include:
-          - package: agents-council-linux-x64
-            npm_os: linux
-            npm_cpu: x64
-            binary_ext: ""
-          - package: agents-council-linux-arm64
-            npm_os: linux
-            npm_cpu: arm64
-            binary_ext: ""
-          - package: agents-council-darwin-x64
-            npm_os: darwin
-            npm_cpu: x64
-            binary_ext: ""
-          - package: agents-council-darwin-arm64
-            npm_os: darwin
-            npm_cpu: arm64
-            binary_ext: ""
-          - package: agents-council-windows-x64
-            npm_os: win32
-            npm_cpu: x64
-            binary_ext: .exe
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v7
-        with:
-          name: release-${{ matrix.package }}
-          path: bundle
-      - name: Prepare platform package payload
-        shell: bash
-        env:
-          BINARY_EXT: ${{ matrix.binary_ext }}
-          NPM_CPU: ${{ matrix.npm_cpu }}
-          NPM_OS: ${{ matrix.npm_os }}
-          PACKAGE_NAME: ${{ matrix.package }}
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF##refs/tags/v}"
-          mkdir -p pkg/desktop-artifacts
-          cp "bundle/cli/council${BINARY_EXT}" "pkg/council${BINARY_EXT}"
-          cp bundle/desktop-artifacts/* pkg/desktop-artifacts/
-          cp bundle/occult-release-manifest.json bundle/SHA256SUMS.txt pkg/
-          cp LICENSE README.md pkg/ 2>/dev/null || true
-          TAG="$TAG" node <<'NODE'
-          const fs = require("node:fs");
-          const tag = process.env.TAG;
-          const packageName = process.env.PACKAGE_NAME;
-          const os = process.env.NPM_OS;
-          const cpu = process.env.NPM_CPU;
-          const binaryExt = process.env.BINARY_EXT ?? "";
-          const binaryName = `council${binaryExt}`;
-          const pkg = {
-            name: packageName,
-            version: tag,
-            os: [os],
-            cpu: [cpu],
-            files: [
-              binaryName,
-              "desktop-artifacts/*",
-              "occult-release-manifest.json",
-              "SHA256SUMS.txt",
-              "package.json",
-              "README.md",
-              "LICENSE",
-            ],
-            occult: {
-              contractVersions: ["1.0.0"],
-              featureGate: "OCCULT_ENABLED",
-            },
-            repository: {
-              type: "git",
-              url: "https://github.com/MrLesk/agents-council",
-            },
-          };
-          fs.writeFileSync("pkg/package.json", `${JSON.stringify(pkg, null, 2)}\n`);
-          NODE
-      - name: Ensure executable permission (non-Windows)
-        if: ${{ matrix.binary_ext == '' }}
-        shell: bash
-        run: chmod +x pkg/council
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-      - name: Configure npm for trusted publishing
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install -g npm@11.7.0
-          npm --version
-      - name: Dry run platform publish
-        shell: bash
-        run: |
-          cd pkg
-          npm publish --access public --dry-run
-      - name: Publish platform package
-        shell: bash
-        run: |
-          cd pkg
-          npm publish --access public
-
-  install-sanity:
-    name: install-sanity-${{ matrix.os }}
-    needs: [publish-platform-packages, npm-publish]
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-      - name: Install and run council (Unix)
-        if: ${{ matrix.os != 'windows-latest' }}
-        shell: bash
-        run: |
-          set -euxo pipefail
-          VERSION="${GITHUB_REF##refs/tags/v}"
-          mkdir sanity && cd sanity
-          npm init -y >/dev/null 2>&1
-          for attempt in 1 2 3 4 5; do
-            rm -rf node_modules package-lock.json 2>/dev/null || true
-            npm i "agents-council@${VERSION}"
-            if ./node_modules/.bin/council --version; then
-              break
-            fi
-            echo "Attempt $attempt: package not available yet, retrying in 15s..."
-            sleep 15
-          done
-          ./node_modules/.bin/council --version
-          ./node_modules/.bin/council --help
-          node -e 'const p=require("agents-council/package.json");if(!p.occult?.contractVersions?.includes("1.0.0"))process.exit(1)'
-          ./node_modules/.bin/council mcp --agent-name install-sanity >mcp.log 2>&1 &
-          MCP_PID=$!
-          sleep 3
-          kill "$MCP_PID" >/dev/null 2>&1 || true
-          wait "$MCP_PID" || true
-          grep -q "Council MCP server running on stdio" mcp.log
-      - name: Install and run council (Windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $Version = $env:GITHUB_REF_NAME.TrimStart('v')
-          mkdir sanity | Out-Null
-          Set-Location sanity
-          npm init -y | Out-Null
-          for ($attempt = 1; $attempt -le 5; $attempt++) {
-            Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue
-            npm i "agents-council@$Version"
-            try {
-              & .\node_modules\.bin\council.cmd --version
-              break
-            } catch {
-              Write-Host "Attempt ${attempt}: package not available yet, retrying in 15s..."
-              Start-Sleep -Seconds 15
-            }
-          }
-          & .\node_modules\.bin\council.cmd --version
-          & .\node_modules\.bin\council.cmd --help
-          node -e 'const p=require("agents-council/package.json");if(!p.occult?.contractVersions?.includes("1.0.0"))process.exit(1)'
-
-          $stdoutLog = "mcp.stdout.log"
-          $stderrLog = "mcp.stderr.log"
-          $proc = Start-Process -FilePath ".\node_modules\.bin\council.cmd" -ArgumentList @("mcp", "--agent-name", "install-sanity") -NoNewWindow -PassThru -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog
-          Start-Sleep -Seconds 3
-          if (-not $proc.HasExited) {
-            Stop-Process -Id $proc.Id -Force
-          }
-          Start-Sleep -Seconds 1
-          if (-not (Select-String -Path $stderrLog -Pattern "Council MCP server running on stdio" -Quiet)) {
-            Get-Content $stdoutLog -ErrorAction SilentlyContinue
-            Get-Content $stderrLog -ErrorAction SilentlyContinue
-            throw "MCP startup log not found."
-          }
+          if-no-files-found: error
+          retention-days: 30
 
   github-release:
-    needs: install-sanity
+    name: Publish verified GitHub release
+    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v7
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: release-agents-council-*
           path: release-assets
-      - name: Collect desktop release assets
+      - name: Package release assets
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p desktop-release-assets
-          find release-assets -type f -path "*/desktop-artifacts/*" -print -exec cp {} desktop-release-assets/ \;
+          mkdir -p publish
           for bundle in release-assets/release-agents-council-*; do
-            label="$(basename "$bundle" | sed 's/^release-//')"
-            cp "$bundle/occult-release-manifest.json" "desktop-release-assets/${label}-occult-release-manifest.json"
-            cp "$bundle/SHA256SUMS.txt" "desktop-release-assets/${label}-SHA256SUMS.txt"
+            package="$(basename "$bundle" | sed 's/^release-//')"
+            if [[ "$package" != *windows* ]]; then
+              chmod +x "$bundle/cli/council"
+            fi
+            tar -C "$bundle" -czf "publish/${package}.tar.gz" .
+            cp "$bundle/occult-release-manifest.json" "publish/${package}-occult-release-manifest.json"
+            cp "$bundle/SHA256SUMS.txt" "publish/${package}-SHA256SUMS.txt"
           done
-          cp CHANGELOG.md docs/occult-production-release.md desktop-release-assets/
-          ls -la desktop-release-assets
-          ls desktop-release-assets/stable-macos-* >/dev/null
-          ls desktop-release-assets/stable-linux-* >/dev/null
-          ls desktop-release-assets/stable-win-* >/dev/null
-      - uses: softprops/action-gh-release@v2
-        with:
-          body_path: CHANGELOG.md
-          files: desktop-release-assets/*
-
-  update-version:
-    needs: github-release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: main
-      - name: Sync version to tag
+          cp CHANGELOG.md docs/occult-production-release.md publish/
+          TAG="${GITHUB_REF_NAME#v}"
+          awk -v version="$TAG" '
+            $0 ~ "^## " version " " { capture=1 }
+            capture && /^## / && $0 !~ "^## " version " " { exit }
+            capture { print }
+          ' CHANGELOG.md > publish/RELEASE-NOTES.md
+          test -s publish/RELEASE-NOTES.md
+          (
+            cd publish
+            find . -maxdepth 1 -type f ! -name RELEASE-SHA256SUMS.txt -printf '%f\0' |
+              sort -z |
+              xargs -0 sha256sum > RELEASE-SHA256SUMS.txt
+          )
+      - name: Publish immutable release
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="${GITHUB_REF##refs/tags/v}"
-          jq ".version = \"$TAG\"" package.json > tmp.json && mv tmp.json package.json
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: "chore: update version to ${GITHUB_REF##refs/tags/v} [skip ci]"
-          branch: main
-          file_pattern: package.json
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" publish/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "Agents Council ${GITHUB_REF_NAME}" \
+            --notes-file publish/RELEASE-NOTES.md \
+            --verify-tag

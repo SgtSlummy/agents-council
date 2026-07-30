@@ -1,6 +1,6 @@
 # Occult contract v1 in Agents Council
 
-Status: contract foundation only; disabled and disconnected from runtime entry points.
+Status: implemented and feature-gated; disabled by default.
 
 ## Purpose
 
@@ -8,9 +8,10 @@ Status: contract foundation only; disabled and disconnected from runtime entry p
 with Hermes Occult contract version `1.0.0`. It validates contract payloads
 before later reading or bridge code may create state or invoke Hermes.
 
-This foundation does not register MCP tools, add CLI commands, change Council
-Hall, create reading state, summon agents, or contact Hermes or an LLM
-provider. Existing Council behavior is unchanged.
+The contract types and validators are side-effect free. The production runtime
+registers bounded CLI, MCP, and Council Hall entry points only when
+`OCCULT_ENABLED=true`; it can then persist readings and contact the configured
+Hermes bridge. Existing Council behavior is unchanged while the gate is off.
 
 Portable Hermes parity fixtures live in:
 
@@ -45,10 +46,9 @@ payload values in validation errors.
 - Breaking field, enum, or semantic changes require a new major contract
   version and an explicit migration window.
 
-The feature-gate helper is fail-closed: only
-`{ occult: { enabled: true } }` is enabled. It is intentionally not called by
-an existing runtime path in this slice. A later task will add one bounded
-entry point after persistent reading state exists.
+The feature gate is fail-closed. Public CLI, MCP, and Council Hall entry points
+are registered only when `OCCULT_ENABLED=true`; the Hermes bridge and durable
+reading service are then composed through those bounded interfaces.
 
 ## Idempotency and event semantics
 
@@ -72,7 +72,9 @@ bun run format:check
 
 ## Rollback
 
-This slice creates no persistent state and changes no entry point. Rollback is
-removing the isolated contract module, fixtures, tests, and this document.
-Later runtime work must retain a single default-off boundary so the reading
+When enabled, the runtime creates durable reading state and registers the
+bounded entry points described above. Rollback is disabling `OCCULT_ENABLED`;
+removing the isolated runtime, contract modules, fixtures, tests, and
+documentation removes the feature entirely. Future runtime work must retain a
+single default-off boundary so the reading
 integration can be disabled without changing ordinary Council sessions.

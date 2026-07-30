@@ -1,7 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-const LOCK_STALE_MS = 30_000;
 const LOCK_RETRY_DELAY_MS = 50;
 const LOCK_MAX_WAIT_MS = 10_000;
 
@@ -69,13 +68,9 @@ async function acquireLock(lockPath: string): Promise<void> {
       await fs.writeFile(lockPath, payload, { flag: "wx" });
       return;
     } catch (error) {
-      if (!isErrno(error, "EEXIST")) {
+      const alreadyExists = isErrno(error, "EEXIST");
+      if (!alreadyExists && !isTransientWindowsLockError(error)) {
         throw error;
-      }
-
-      if (await isLockStale(lockPath)) {
-        await releaseLock(lockPath);
-        continue;
       }
 
       if (Date.now() - start > LOCK_MAX_WAIT_MS) {
@@ -88,25 +83,21 @@ async function acquireLock(lockPath: string): Promise<void> {
 }
 
 async function releaseLock(lockPath: string): Promise<void> {
-  try {
-    await fs.unlink(lockPath);
-  } catch (error) {
-    if (!isErrno(error, "ENOENT")) {
-      throw error;
-    }
-  }
-}
+  const start = Date.now();
 
-async function isLockStale(lockPath: string): Promise<boolean> {
-  try {
-    const stats = await fs.stat(lockPath);
-    return Date.now() - stats.mtimeMs > LOCK_STALE_MS;
-  } catch (error) {
-    if (isErrno(error, "ENOENT")) {
-      return false;
+  while (true) {
+    try {
+      await fs.unlink(lockPath);
+      return;
+    } catch (error) {
+      if (isErrno(error, "ENOENT")) {
+        return;
+      }
+      if (!isTransientWindowsLockError(error) || Date.now() - start > LOCK_MAX_WAIT_MS) {
+        throw error;
+      }
+      await delay(LOCK_RETRY_DELAY_MS);
     }
-
-    throw error;
   }
 }
 
@@ -118,4 +109,8 @@ function isErrno(error: unknown, code: string): error is NodeJS.ErrnoException {
   return (
     typeof error === "object" && error !== null && "code" in error && (error as NodeJS.ErrnoException).code === code
   );
+}
+
+function isTransientWindowsLockError(error: unknown): boolean {
+  return process.platform === "win32" && (isErrno(error, "EPERM") || isErrno(error, "EACCES"));
 }

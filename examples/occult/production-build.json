@@ -1,0 +1,57 @@
+{
+  "session_id": "replace-with-active-session-id",
+  "spread_id": "occult.spread.production-build",
+  "spread_version": "1.0.0",
+  "idempotency_key": "replace-with-unique-project-key",
+  "deck_id": "occult.deck.starter",
+  "routing": {
+    "mode": "local_only",
+    "free_only": true,
+    "local_only": true,
+    "maximum_fallbacks": 0,
+    "maximum_cost_usd": 0
+  },
+  "maximum_parallelism": 1,
+  "nodes": [
+    {
+      "node_id": "build",
+      "agent_id": "occult.major.magician",
+      "message": "Implement the approved production slice.",
+      "required_capabilities": ["text"],
+      "orientation": "upright",
+      "requires_approval": false,
+      "maximum_attempts": 2,
+      "timeout_ms": 120000
+    },
+    {
+      "node_id": "audit",
+      "agent_id": "occult.major.justice",
+      "message": "Audit the implementation for correctness and policy compliance.",
+      "required_capabilities": ["text"],
+      "orientation": "upright",
+      "requires_approval": false,
+      "maximum_attempts": 2,
+      "timeout_ms": 120000
+    },
+    {
+      "node_id": "synthesize",
+      "agent_id": "occult.major.temperance",
+      "message": "Synthesize the approved implementation and audit into the final handoff.",
+      "required_capabilities": ["text"],
+      "orientation": "upright",
+      "requires_approval": false,
+      "maximum_attempts": 2,
+      "timeout_ms": 120000
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "build",
+      "target": "audit"
+    },
+    {
+      "source": "audit",
+      "target": "synthesize"
+    }
+  ]
+}
