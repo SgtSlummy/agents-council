@@ -80,12 +80,20 @@ jobs:
           fi
           "./$CLI_BIN" --version
           "./$CLI_BIN" --help
-      - name: Build stable desktop artifacts
+      - name: Build stable desktop artifacts (Unix)
+        if: ${{ matrix.platform != 'win' }}
         shell: bash
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF##refs/tags/v}"
           AGENTS_COUNCIL_VERSION="$TAG" bunx electrobun build --env=stable
+      - name: Build stable desktop artifacts (Windows)
+        if: ${{ matrix.platform == 'win' }}
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          $env:AGENTS_COUNCIL_VERSION = $tag
+          bunx electrobun build --env=stable
       - name: Assemble release payload
         shell: bash
         run: |

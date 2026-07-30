@@ -2,6 +2,14 @@
 
 All notable changes to Agents Council are documented here.
 
+## 0.5.1 - 2026-07-29
+
+### Fixed
+
+- Windows release builds now invoke Electrobun from PowerShell so its CLI
+  archive extractor receives a native drive-letter path instead of a Git Bash
+  path that GNU `tar` interprets as a remote host.
+
 ## 0.5.0 - 2026-07-29
 
 ### Added
