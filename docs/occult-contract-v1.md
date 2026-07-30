@@ -8,9 +8,10 @@ Status: implemented and feature-gated; disabled by default.
 with Hermes Occult contract version `1.0.0`. It validates contract payloads
 before later reading or bridge code may create state or invoke Hermes.
 
-This foundation does not register MCP tools, add CLI commands, change Council
-Hall, create reading state, summon agents, or contact Hermes or an LLM
-provider. Existing Council behavior is unchanged.
+The contract types and validators are side-effect free. The production runtime
+registers bounded CLI, MCP, and Council Hall entry points only when
+`OCCULT_ENABLED=true`; it can then persist readings and contact the configured
+Hermes bridge. Existing Council behavior is unchanged while the gate is off.
 
 Portable Hermes parity fixtures live in:
 
@@ -71,7 +72,9 @@ bun run format:check
 
 ## Rollback
 
-This slice creates no persistent state and changes no entry point. Rollback is
-removing the isolated contract module, fixtures, tests, and this document.
-Later runtime work must retain a single default-off boundary so the reading
+When enabled, the runtime creates durable reading state and registers the
+bounded entry points described above. Rollback is disabling `OCCULT_ENABLED`;
+removing the isolated runtime, contract modules, fixtures, tests, and
+documentation removes the feature entirely. Future runtime work must retain a
+single default-off boundary so the reading
 integration can be disabled without changing ordinary Council sessions.

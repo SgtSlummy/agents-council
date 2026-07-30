@@ -15,13 +15,13 @@ Agents Council can coordinate the signed Major Arcana runtime in Hermes. Start
 Hermes locally, then enable the Council bridge:
 
 ```bash
-set OCCULT_ENABLED=true
-set OCCULT_HERMES_URL=http://127.0.0.1:8642
-set OCCULT_HERMES_SERVICE_TOKEN=<scoped Hermes token>
+export OCCULT_ENABLED=true
+export OCCULT_HERMES_URL=http://127.0.0.1:8642
+export OCCULT_HERMES_SERVICE_TOKEN=<scoped Hermes token>
 council occult create --session-id <session> --agent-name <participant> --plan examples/occult/production-build.json
 ```
 
-On Linux and macOS, use `export` instead of `set`. The bridge never stores or
+On Windows `cmd`, use `set` instead of `export`. The bridge never stores or
 returns the service token, provider credentials, prompts, or raw route
 explanations. Occult remains invisible when the feature flag is not exactly
 `true`.
@@ -62,7 +62,8 @@ If you only need agent-to-agent communication, skip to MCP Setup. Install the CL
 
 Download the installer or standalone CLI for your platform from
 [GitHub Releases](https://github.com/SgtSlummy/agents-council/releases).
-The upstream npm package remains usable for ordinary Council mode:
+The upstream npm package remains usable for ordinary Council mode, but it does
+not include this fork's Occult features:
 
 ```bash
 npm install -g agents-council

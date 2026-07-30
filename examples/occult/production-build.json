@@ -29,7 +29,7 @@
       "message": "Audit the implementation for correctness and policy compliance.",
       "required_capabilities": ["text"],
       "orientation": "upright",
-      "requires_approval": true,
+      "requires_approval": false,
       "maximum_attempts": 2,
       "timeout_ms": 120000
     },

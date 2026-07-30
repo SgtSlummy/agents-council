@@ -77,17 +77,15 @@ contain a route summary and no error.
 Live bridge construction occurs only when the Occult feature gate is explicitly
 enabled. The interface adapter reads:
 
-```yaml
-occult:
-  enabled: false
-  hermes_bridge:
-    base_url: http://127.0.0.1:8642
-    service_token_secret: agents-council/hermes-service-token
+```bash
+export OCCULT_ENABLED=true
+export OCCULT_HERMES_URL=http://127.0.0.1:8642
+export OCCULT_HERMES_SERVICE_TOKEN=<scoped Hermes service token>
 ```
 
-Keep the service token in an approved secret store and inject its value into
-`HttpHermesOccultBridge` at runtime. Do not place it in this YAML, Council
-state, logs, events, or task metadata.
+Keep the service token in an approved secret store and inject it into the
+process environment at runtime. Do not place it in repository configuration,
+Council state, logs, events, or task metadata.
 
 Each spread also declares:
 

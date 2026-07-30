@@ -1,7 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-const LOCK_STALE_MS = 30_000;
 const LOCK_RETRY_DELAY_MS = 50;
 const LOCK_MAX_WAIT_MS = 10_000;
 
@@ -74,11 +73,6 @@ async function acquireLock(lockPath: string): Promise<void> {
         throw error;
       }
 
-      if (alreadyExists && (await isLockStale(lockPath))) {
-        await releaseLock(lockPath);
-        continue;
-      }
-
       if (Date.now() - start > LOCK_MAX_WAIT_MS) {
         throw new Error("Timed out waiting for file lock");
       }
@@ -104,19 +98,6 @@ async function releaseLock(lockPath: string): Promise<void> {
       }
       await delay(LOCK_RETRY_DELAY_MS);
     }
-  }
-}
-
-async function isLockStale(lockPath: string): Promise<boolean> {
-  try {
-    const stats = await fs.stat(lockPath);
-    return Date.now() - stats.mtimeMs > LOCK_STALE_MS;
-  } catch (error) {
-    if (isErrno(error, "ENOENT")) {
-      return false;
-    }
-
-    throw error;
   }
 }
 

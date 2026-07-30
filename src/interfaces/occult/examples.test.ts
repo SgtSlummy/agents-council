@@ -11,6 +11,7 @@ describe("Occult example spreads", () => {
       expect(parsed.routing?.local_only).toBe(true);
       expect(parsed.routing?.free_only).toBe(true);
       expect(parsed.routing?.maximum_cost_usd).toBe(0);
+      expect(parsed.nodes.every((node) => !node.requires_approval)).toBe(true);
     });
   }
 });

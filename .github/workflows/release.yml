@@ -7,11 +7,6 @@ on:
 permissions:
   contents: read
 
-env:
-  # CI uses macos-latest; release builds pin explicit macOS images per architecture.
-  RELEASE_RUNNER_FAMILIES: ubuntu-latest macos-latest windows-latest
-  OCCULT_RELEASE_CONTRACT: 'contractVersions: ["1.0.0"]'
-
 jobs:
   build:
     name: build-${{ matrix.package }}
@@ -29,7 +24,7 @@ jobs:
             arch: arm64
             package: agents-council-linux-arm64
             binary_ext: ""
-          - runner: macos-13
+          - runner: macos-15-intel
             platform: macos
             arch: x64
             package: agents-council-darwin-x64
@@ -98,6 +93,10 @@ jobs:
           PREFIX="stable-${{ matrix.platform }}-${{ matrix.arch }}-"
           mkdir -p bundle/cli bundle/desktop-artifacts
           cp "dist/council${{ matrix.binary_ext }}" "bundle/cli/council${{ matrix.binary_ext }}"
+          if [[ ! -d artifacts ]] || ! compgen -G "artifacts/${PREFIX}*" > /dev/null; then
+            echo "Missing Electrobun artifacts for ${PREFIX}" >&2
+            exit 1
+          fi
           find artifacts -maxdepth 1 -type f -name "${PREFIX}*" -exec cp {} bundle/desktop-artifacts/ \;
           test "$(find bundle/desktop-artifacts -maxdepth 1 -type f | wc -l | tr -d ' ')" -gt 0
           test "$(find bundle/desktop-artifacts -maxdepth 1 -type f -name "${PREFIX}*update.json" | wc -l | tr -d ' ')" -gt 0
@@ -144,12 +143,27 @@ jobs:
           mkdir -p publish
           for bundle in release-assets/release-agents-council-*; do
             package="$(basename "$bundle" | sed 's/^release-//')"
+            if [[ "$package" != *windows* ]]; then
+              chmod +x "$bundle/cli/council"
+            fi
             tar -C "$bundle" -czf "publish/${package}.tar.gz" .
             cp "$bundle/occult-release-manifest.json" "publish/${package}-occult-release-manifest.json"
             cp "$bundle/SHA256SUMS.txt" "publish/${package}-SHA256SUMS.txt"
           done
           cp CHANGELOG.md docs/occult-production-release.md publish/
-          sha256sum publish/* > publish/RELEASE-SHA256SUMS.txt
+          TAG="${GITHUB_REF_NAME#v}"
+          awk -v version="$TAG" '
+            $0 ~ "^## " version " " { capture=1 }
+            capture && /^## / && $0 !~ "^## " version " " { exit }
+            capture { print }
+          ' CHANGELOG.md > publish/RELEASE-NOTES.md
+          test -s publish/RELEASE-NOTES.md
+          (
+            cd publish
+            find . -maxdepth 1 -type f ! -name RELEASE-SHA256SUMS.txt -printf '%f\0' |
+              sort -z |
+              xargs -0 sha256sum > RELEASE-SHA256SUMS.txt
+          )
       - name: Publish immutable release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -160,5 +174,5 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
             --title "Agents Council ${GITHUB_REF_NAME}" \
-            --notes-file CHANGELOG.md \
+            --notes-file publish/RELEASE-NOTES.md \
             --verify-tag
