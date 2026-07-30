@@ -11,7 +11,7 @@ describe("Occult release configuration", () => {
     });
     expect(electrobunConfig).toContain('occultContractVersions: ["1.0.0"]');
     expect(electrobunConfig).toContain('occultFeatureGate: "OCCULT_ENABLED"');
-    expect(electrobunConfig).toContain('?? "0.5.0"');
+    expect(electrobunConfig).toContain(`?? "${packageJson.version}"`);
   });
 
   test("keeps cross-platform release assembly gated by manifests and checksums", async () => {
@@ -33,5 +33,8 @@ describe("Occult release configuration", () => {
     expect(release).toContain("! -name RELEASE-SHA256SUMS.txt");
     expect(release).toContain("xargs -0 sha256sum > RELEASE-SHA256SUMS.txt");
     expect(release).toContain("--notes-file publish/RELEASE-NOTES.md");
+    expect(release).toContain("Build stable desktop artifacts (Windows)");
+    expect(release).toContain("shell: pwsh");
+    expect(release).toContain("$env:AGENTS_COUNCIL_VERSION = $tag");
   });
 });
