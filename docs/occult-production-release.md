@@ -9,6 +9,28 @@ and generated release manifests declare this compatibility.
 No state migration is introduced. Occult readings remain part of Council state
 schema version 3.
 
+## Public GitHub installation
+
+The Occult-enabled fork is distributed through
+[SgtSlummy/agents-council releases](https://github.com/SgtSlummy/agents-council/releases),
+not the upstream unscoped npm package. End-to-end users should follow the
+[canonical Occult quickstart](https://github.com/SgtSlummy/hermes-agent/blob/main/docs/occult/quickstart.md);
+the Hermes installer pins the compatible Council release.
+
+Each release publishes `RELEASE-SHA256SUMS.txt` and its adjacent
+`RELEASE-SHA256SUMS.txt.sigstore.json` bundle. Verify the checksum manifest
+before trusting any platform archive:
+
+```text
+sigstore verify identity RELEASE-SHA256SUMS.txt \
+  --cert-identity "https://github.com/SgtSlummy/agents-council/.github/workflows/release.yml@refs/tags/vX.Y.Z" \
+  --cert-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+Then compare the selected archive with its entry in
+`RELEASE-SHA256SUMS.txt` and verify the archive's internal
+`SHA256SUMS.txt` after extraction.
+
 ## Security review
 
 The production persistence boundary applies these controls before any Occult
@@ -165,9 +187,13 @@ down-migration.
 - [ ] All five native build-matrix payloads contain the expected files.
 - [ ] Package metadata declares Occult contract `1.0.0`.
 - [ ] Manifests and checksums exist for every platform payload.
+- [ ] `RELEASE-SHA256SUMS.txt` has a verified Sigstore bundle for the exact tag
+      workflow identity.
 - [ ] No state/config/key/credential file is present in any payload.
 - [ ] Install sanity passes on Windows, macOS, and Linux.
 - [ ] Backup/restore and rollback smoke procedures are recorded.
 - [ ] Paid providers remain controlled by Hermes policy; Council has no keys.
 - [ ] GitHub release contains installers, update payloads, manifests, checksums,
-      changelog, and rollback link.
+      checksum signature bundle, changelog, and rollback link.
+- [ ] The GitHub `latest` marker advances only after the protected Occult launch
+      canary passes.

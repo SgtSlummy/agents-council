@@ -32,9 +32,26 @@ describe("Occult release configuration", () => {
     expect(release).toContain('chmod +x "$bundle/cli/council"');
     expect(release).toContain("! -name RELEASE-SHA256SUMS.txt");
     expect(release).toContain("xargs -0 sha256sum > RELEASE-SHA256SUMS.txt");
+    expect(release).toContain("id-token: write");
+    expect(release).toContain("sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9");
+    expect(release).toContain("inputs: publish/RELEASE-SHA256SUMS.txt");
+    expect(release).toContain(
+      `https://github.com/SgtSlummy/agents-council/.github/workflows/release.yml@\${{ github.ref }}`,
+    );
+    expect(release).toContain("verify-oidc-issuer: https://token.actions.githubusercontent.com");
+    expect(release).toContain("--latest=false");
     expect(release).toContain("--notes-file publish/RELEASE-NOTES.md");
     expect(release).toContain("Build stable desktop artifacts (Windows)");
     expect(release).toContain("shell: pwsh");
     expect(release).toContain("$env:AGENTS_COUNCIL_VERSION = $tag");
+  });
+
+  test("documents only the GitHub-first Occult distribution path", async () => {
+    const readme = await Bun.file("README.md").text();
+
+    expect(readme).toContain("https://github.com/SgtSlummy/agents-council/releases");
+    expect(readme).toContain("SgtSlummy/hermes-agent/blob/main/docs/occult/quickstart.md");
+    expect(readme).not.toContain("agents-council@latest");
+    expect(readme).not.toContain("npm install -g agents-council");
   });
 });
