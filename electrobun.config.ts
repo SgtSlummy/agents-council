@@ -1,6 +1,6 @@
 import type { ElectrobunConfig } from "electrobun";
 
-const appVersion = process.env.AGENTS_COUNCIL_VERSION ?? "0.5.1";
+const appVersion = process.env.AGENTS_COUNCIL_VERSION ?? "0.5.2";
 
 export default {
   app: {

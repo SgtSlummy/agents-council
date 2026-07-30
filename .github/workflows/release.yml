@@ -136,6 +136,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -172,6 +173,14 @@ jobs:
               sort -z |
               xargs -0 sha256sum > RELEASE-SHA256SUMS.txt
           )
+      - name: Sign and verify complete release checksum manifest
+        uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
+        with:
+          inputs: publish/RELEASE-SHA256SUMS.txt
+          verify: true
+          verify-cert-identity: >-
+            https://github.com/SgtSlummy/agents-council/.github/workflows/release.yml@${{ github.ref }}
+          verify-oidc-issuer: https://token.actions.githubusercontent.com
       - name: Publish immutable release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -183,4 +192,5 @@ jobs:
             --target "${GITHUB_SHA}" \
             --title "Agents Council ${GITHUB_REF_NAME}" \
             --notes-file publish/RELEASE-NOTES.md \
+            --latest=false \
             --verify-tag

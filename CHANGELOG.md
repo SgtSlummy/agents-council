@@ -2,6 +2,28 @@
 
 All notable changes to Agents Council are documented here.
 
+## 0.5.2 - 2026-07-30
+
+### Added
+
+- Signed the complete GitHub release checksum manifest with Sigstore and
+  published the verification bundle beside the platform archives.
+- Added a GitHub-release-first installation path for the Occult-enabled fork.
+
+### Security
+
+- Stable release assets are verified against the exact tag workflow identity
+  before publication.
+- Releases are published without advancing GitHub's `latest` marker until the
+  protected Occult launch canary passes.
+
+### Compatibility
+
+- Occult contract `1.0.0`, state schema 3, and the `OCCULT_ENABLED` fail-closed
+  gate are unchanged.
+- npm publication remains out of scope; v0.5.2 is consumed as an immutable
+  GitHub release by Hermes Agent v1.0.1.
+
 ## 0.5.1 - 2026-07-29
 
 ### Fixed

@@ -51,23 +51,23 @@ Inspired by Andrej Karpathy's [LLM Council](https://github.com/karpathy/llm-coun
 
 ## 🚀 Getting Started
 
-**Agents Council requires [Node.js](https://nodejs.org/) or [Bun](https://bun.sh/).**
+The compiled GitHub releases do not require Node.js or Bun. Those runtimes are
+required only for source development or the upstream npm distribution.
 
-### 1. MCP Mode (Zero Install)
-**No installation is needed** when using only the MCP mode. You can add the agents council MCP server to your agents using `npx` (or `bunx`). See the [MCP Setup](#-mcp-setup) section below for specific commands.
+### 1. Occult System
 
-If you only need agent-to-agent communication, skip to MCP Setup. Install the CLI only for the desktop app and global `council` command.
+Use the
+[Occult local quickstart](https://github.com/SgtSlummy/hermes-agent/blob/main/docs/occult/quickstart.md).
+The verified Hermes installer selects and installs the immutable Agents Council
+release required by that Occult version.
 
 ### 2. Desktop App & CLI
 
 Download the installer or standalone CLI for your platform from
 [GitHub Releases](https://github.com/SgtSlummy/agents-council/releases).
-The upstream npm package remains usable for ordinary Council mode, but it does
-not include this fork's Occult features:
-
-```bash
-npm install -g agents-council
-```
+Verify `RELEASE-SHA256SUMS.txt.sigstore.json`, then verify the selected archive
+against `RELEASE-SHA256SUMS.txt` before extracting it. The release bundle
+contains the standalone `council` binary and native desktop artifacts.
 
 Then run one of these:
 
@@ -92,28 +92,29 @@ Each platform bundle ships:
 - the `council` CLI binary for terminal mode (`--help`, `--version`, `mcp`), and
 - Electrobun desktop artifacts in `desktop-artifacts/` for native installer/update distribution.
 
-Each release also includes an Occult compatibility manifest and SHA-256
-checksums. npm publication is intentionally separate from the GitHub release
-gate and is not required to download or verify the application.
+Each release also includes an Occult compatibility manifest, SHA-256 checksums,
+and a Sigstore bundle for the complete release checksum manifest. This fork is
+not published as the upstream unscoped npm package.
 
 ---
 
 ## 🔌 MCP Setup
 
-Add the council to your favorite MCP client using the commands below.
+After installing the release binary on `PATH`, add it to your MCP client using
+the commands below.
 
 <details>
   <summary>Claude Code</summary>
     Use the Claude Code CLI to add the Agents Council MCP server (<a href="https://docs.anthropic.com/en/docs/claude-code/mcp">guide</a>):
 
 ```bash
-claude mcp add council npx agents-council@latest mcp
+claude mcp add council council mcp
 ```
 
 or use a predefined Agent Name:
 
 ```bash
-claude mcp add council -s user -- npx agents-council@latest mcp -n Opus
+claude mcp add council -s user -- council mcp -n Opus
 ```
 
 </details>
@@ -123,7 +124,7 @@ claude mcp add council -s user -- npx agents-council@latest mcp -n Opus
     Use the Gemini CLI to add the Agents Council MCP server (<a href="https://geminicli.com/docs/tools/mcp-server/#adding-a-server-gemini-mcp-add">guide</a>):
 
 ```bash
-gemini mcp add council npx agents-council@latest mcp
+gemini mcp add council council mcp
 ```
 
 </details>
@@ -133,7 +134,7 @@ gemini mcp add council npx agents-council@latest mcp
     Use the Codex CLI to add the Agents Council MCP server (<a href="https://developers.openai.com/codex/mcp/#add-a-mcp-server">guide</a>):
 
 ```bash
-codex mcp add council npx agents-council@latest mcp
+codex mcp add council -- council mcp
 ```
 
 </details>
@@ -143,7 +144,7 @@ codex mcp add council npx agents-council@latest mcp
     Use the amp CLI to add the Agents Council MCP server (<a href="https://ampcode.com/manual#mcp">guide</a>):
 
 ```bash
-amp mcp add council npx agents-council@latest mcp
+amp mcp add council -- council mcp
 ```
 
 </details>
@@ -155,11 +156,8 @@ amp mcp add council npx agents-council@latest mcp
 {
   "mcpServers": {
     "council": {
-      "command": "npx",
-      "args": [
-        "agents-council@latest",
-        "mcp"
-      ]
+      "command": "council",
+      "args": ["mcp"]
     }
   }
 }
