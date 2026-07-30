@@ -210,6 +210,18 @@ export function validateOccultInvocation(payload: unknown): OccultInvocation {
   return invocation;
 }
 
+export function validateOccultError(payload: unknown): OccultError {
+  return validatePayload(occultErrorSchema, payload, "OccultError");
+}
+
+export function validateRouteSummary(payload: unknown): RouteSummary {
+  return validatePayload(routeSummarySchema, payload, "RouteSummary");
+}
+
+export function rejectOccultSecretFields(payload: unknown): void {
+  rejectSecretFields(payload);
+}
+
 export function validateReadingEventStream(payloads: unknown): ReadingEvent[] {
   if (!Array.isArray(payloads) || payloads.length === 0) {
     throw new InvalidContractPayload("event stream must not be empty");

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -63,6 +64,18 @@ describe("Occult reading persistence", () => {
     const starts = await Promise.all([service.startReading(input), service.startReading(input)]);
     expect(starts.map((result) => result.created).sort()).toEqual([false, true]);
     expect(starts[0]?.reading.id).toBe(starts[1]?.reading.id);
+    expect(starts[0]?.reading.idempotencyFingerprint).toBe(
+      createHash("sha256")
+        .update(
+          JSON.stringify({
+            contractVersion: OCCULT_CONTRACT_VERSION,
+            spreadId: input.spreadId,
+            spreadVersion: input.spreadVersion,
+            nodes: input.nodes,
+          }),
+        )
+        .digest("hex"),
+    );
 
     const persisted = await store.load();
     expect(persisted.occultReadings).toHaveLength(1);
