@@ -20,16 +20,25 @@ class FakeHermesBridge implements HermesOccultBridge {
   readonly calls: OccultInvocation[] = [];
   active = 0;
   maximumActive = 0;
+  private concurrencyBarrierReached = false;
 
   constructor(
     private readonly behaviors: Record<string, Behavior[]> = {},
     private readonly successDelayMs = 0,
+    private readonly expectedConcurrentInvocations = 0,
   ) {}
 
   async invoke(invocation: OccultInvocation, options: HermesBridgeInvokeOptions): Promise<HermesBridgeResult> {
     this.calls.push(invocation);
     this.active += 1;
     this.maximumActive = Math.max(this.maximumActive, this.active);
+    if (this.expectedConcurrentInvocations > 0) {
+      if (this.active >= this.expectedConcurrentInvocations) {
+        this.concurrencyBarrierReached = true;
+      } else {
+        await waitUntil(() => this.concurrencyBarrierReached, 1_000, 10);
+      }
+    }
     const nodeId = invocation.metadata.node_id ?? "";
     const behavior = this.behaviors[nodeId]?.shift() ?? "success";
     try {
@@ -145,7 +154,7 @@ describe("Tarot spread scheduler", () => {
   });
 
   test("enforces bounded parallelism and preserves partial failure state", async () => {
-    const bridge = new FakeHermesBridge({ audit: ["fatal"] }, 200);
+    const bridge = new FakeHermesBridge({ audit: ["fatal"] }, 0, 2);
     const harness = await createHarness(bridge);
     const execution = plan(harness.sessionId, {
       maximumParallelism: 2,
@@ -297,12 +306,12 @@ function delay(milliseconds: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-async function waitUntil(predicate: () => boolean): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+async function waitUntil(predicate: () => boolean, maximumAttempts = 100, delayMilliseconds = 1): Promise<void> {
+  for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
     if (predicate()) {
       return;
     }
-    await new Promise((resolve) => setTimeout(resolve, 1));
+    await new Promise((resolve) => setTimeout(resolve, delayMilliseconds));
   }
   throw new Error("Condition was not reached.");
 }
