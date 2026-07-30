@@ -2275,3 +2275,132 @@ body::before {
     transition-duration: 0.01ms;
   }
 }
+.occult-readings-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0.85rem;
+  border: 1px solid var(--gold-soft);
+  border-radius: 0.75rem;
+  background: rgba(31, 25, 20, 0.88);
+}
+
+.occult-readings-header,
+.occult-reading-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.occult-readings-header h3,
+.occult-reading-card h4 {
+  margin: 0;
+}
+
+.occult-reading-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--gold-soft);
+  border-radius: 0.65rem;
+  background: var(--stone);
+}
+
+.occult-reading-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.occult-reading-card header div,
+.occult-node > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.occult-reading-card header div span,
+.occult-pairing,
+.occult-contract,
+.occult-eyebrow,
+.occult-empty {
+  color: var(--parchment-muted);
+  font-size: 0.85rem;
+}
+
+.occult-eyebrow {
+  color: var(--gold);
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.occult-state,
+.occult-node-state {
+  color: var(--gold-bright);
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.occult-node-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.occult-approvals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.occult-approvals legend {
+  width: 100%;
+  color: var(--parchment-muted);
+  font-size: 0.85rem;
+}
+
+.occult-approval {
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--gold-soft);
+  border-radius: 999px;
+}
+
+.occult-node {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem 0.75rem;
+  align-items: start;
+  padding: 0.55rem;
+  border-radius: 0.5rem;
+  background: var(--ash);
+}
+
+.occult-node .occult-error {
+  grid-column: 1 / -1;
+}
+
+.occult-error {
+  margin: 0;
+  color: var(--crimson);
+}
+
+@media (max-width: 640px) {
+  .occult-readings-header,
+  .occult-reading-card > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .occult-node {
+    grid-template-columns: 1fr;
+  }
+
+  .occult-node .occult-error {
+    grid-column: auto;
+  }
+}

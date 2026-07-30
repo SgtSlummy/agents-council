@@ -58,3 +58,18 @@ Migration guidance:
    - `Council session is closed.` / `Council session is already closed.`
 
 See `docs/council.md` for tool-level examples and MCP Inspector validation commands.
+
+## Occult v1 reading tools
+
+When `OCCULT_ENABLED=true`, the MCP server additively registers four
+session-authorized tools:
+
+- `occult_create_reading_v1`
+- `occult_get_reading_v1`
+- `occult_cancel_reading_v1`
+- `occult_resume_reading_v1`
+
+They require contract version `1.0.0`; create/resume accept cancellation, and
+inspect supports incremental `after_sequence` cursors. No Occult tools are
+registered when the feature is disabled. See `docs/occult-interfaces.md` for
+payloads, authorization, CLI equivalents, UI behavior, and rollback.

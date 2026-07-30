@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   closeCouncil,
   getCurrentSessionData,
+  getOccultStatus,
   joinCouncil,
   listSessions,
   sendResponse,
@@ -10,7 +11,7 @@ import {
   startCouncil,
   subscribeCouncilStateChanges,
 } from "../api";
-import type { CouncilStateDto, FeedbackDto, RequestDto, SessionListItemDto } from "../types";
+import type { CouncilStateDto, FeedbackDto, OccultStatusResponse, RequestDto, SessionListItemDto } from "../types";
 
 export type ConnectionStatus = "listening" | "offline";
 
@@ -29,6 +30,7 @@ export type CouncilContext = {
   hallState: HallState;
   sessions: SessionListItemDto[];
   activeSessionId: string | null;
+  occult: OccultStatusResponse | null;
   currentRequest: RequestDto | null;
   feedback: FeedbackDto[];
   pendingParticipants: string[];
@@ -54,6 +56,7 @@ export function useCouncil(name: string | null): CouncilContext {
   const [pendingParticipants, setPendingParticipants] = useState<string[]>([]);
   const [sessions, setSessions] = useState<SessionListItemDto[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [occult, setOccult] = useState<OccultStatusResponse | null>(null);
 
   const sessionStatus: SessionStatus = state?.session?.status ?? "none";
 
@@ -85,10 +88,12 @@ export function useCouncil(name: string | null): CouncilContext {
 
   const loadSnapshot = useCallback(async (agentName: string) => {
     const [sessionData, chronicle] = await Promise.all([getCurrentSessionData(agentName), listSessions()]);
+    const occultStatus = await getOccultStatus(agentName, sessionData.session_id ?? undefined);
     setState(sessionData.state);
     setPendingParticipants(sessionData.pending_participants);
     setSessions(chronicle.sessions);
     setActiveSessionId(chronicle.active_session_id);
+    setOccult(occultStatus);
     setLastUpdated(new Date().toLocaleTimeString());
   }, []);
 
@@ -283,6 +288,7 @@ export function useCouncil(name: string | null): CouncilContext {
     hallState,
     sessions,
     activeSessionId,
+    occult,
     currentRequest,
     feedback,
     pendingParticipants,

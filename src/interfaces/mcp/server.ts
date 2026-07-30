@@ -4,6 +4,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
 import { loadSummonSettings } from "../../core/config/summonSettings";
+import { OCCULT_CONTRACT_VERSION } from "../../core/occult/contract";
 import { CouncilServiceImpl } from "../../core/services/council";
 import {
   SUPPORTED_SUMMON_AGENTS,
@@ -12,6 +13,22 @@ import {
   summonAgent,
 } from "../../core/services/council/summon";
 import { FileCouncilStateStore } from "../../core/state/fileStateStore";
+import { loadOccultInterfaceConfig } from "../occult/config";
+import {
+  occultCancelSchema,
+  occultCreateSchema,
+  occultInspectSchema,
+  occultResumeSchema,
+  mapWireSpreadPlan,
+} from "../occult/protocol";
+import type {
+  OccultCancelParams,
+  OccultCreateParams,
+  OccultInspectParams,
+  OccultResumeParams,
+} from "../occult/protocol";
+import { OccultInterfaceService } from "../occult/service";
+import type { OccultInterfaceConfig, OccultReadingDto } from "../occult/types";
 import {
   mapCloseSessionInput,
   mapCloseCouncilResponse,
@@ -44,12 +61,27 @@ type ToolName =
   | "join_council"
   | "get_current_session_data"
   | "close_council"
+  | "occult_cancel_reading_v1"
+  | "occult_create_reading_v1"
+  | "occult_get_reading_v1"
+  | "occult_resume_reading_v1"
   | "send_response"
   | "summon_agent";
 type ToolContext = {
   cursor?: string;
   sessionId?: string;
 };
+
+export const OCCULT_MCP_TOOL_NAMES = [
+  "occult_cancel_reading_v1",
+  "occult_create_reading_v1",
+  "occult_get_reading_v1",
+  "occult_resume_reading_v1",
+] as const;
+
+export function getOccultMcpToolNames(enabled: boolean): readonly string[] {
+  return enabled ? OCCULT_MCP_TOOL_NAMES : [];
+}
 
 const serverInstructions = [
   "If you need feedback from other AI agents, start a council with start_council.",
@@ -69,6 +101,7 @@ const server = new McpServer(
 );
 
 const service = new CouncilServiceImpl(new FileCouncilStateStore());
+let occultService: OccultInterfaceService | null = null;
 let responseFormat: ResponseFormat = "markdown";
 let agentName: string | null = null;
 let toolsRegistered = false;
@@ -76,7 +109,7 @@ let toolsRegistered = false;
 const registerTool = <TParams>(
   name: string,
   config: { description: string; inputSchema: z.ZodTypeAny },
-  handler: (params: TParams) => Promise<CallToolResult> | CallToolResult,
+  handler: (params: TParams, extra: { signal?: AbortSignal }) => Promise<CallToolResult> | CallToolResult,
 ) => {
   (server.registerTool as unknown as (toolName: string, toolConfig: unknown, cb: unknown) => void)(
     name,
@@ -85,7 +118,9 @@ const registerTool = <TParams>(
   );
 };
 
-export async function startMcpServer(options: { format?: ResponseFormat; agentName?: string } = {}): Promise<void> {
+export async function startMcpServer(
+  options: { format?: ResponseFormat; agentName?: string; occultConfig?: OccultInterfaceConfig } = {},
+): Promise<void> {
   const format = options.format ?? "markdown";
   if (format !== "markdown" && format !== "json") {
     throw new Error("Unsupported response format. Use 'markdown' or 'json'.");
@@ -93,8 +128,14 @@ export async function startMcpServer(options: { format?: ResponseFormat; agentNa
   responseFormat = format;
   const configuredAgentName = options.agentName?.trim() || null;
   agentName = configuredAgentName;
+  const occultConfig = options.occultConfig ?? loadOccultInterfaceConfig();
+  occultService = occultConfig.enabled ? new OccultInterfaceService(new FileCouncilStateStore(), occultConfig) : null;
   const supportedModelsByAgent = await loadCachedSummonModelsByAgent();
-  registerTools({ hasDefaultAgentName: configuredAgentName !== null, supportedModelsByAgent });
+  registerTools({
+    hasDefaultAgentName: configuredAgentName !== null,
+    supportedModelsByAgent,
+    occultEnabled: occultConfig.enabled,
+  });
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("Council MCP server running on stdio");
@@ -103,6 +144,7 @@ export async function startMcpServer(options: { format?: ResponseFormat; agentNa
 function registerTools(options: {
   hasDefaultAgentName: boolean;
   supportedModelsByAgent: Record<string, { value: string; displayName: string; description: string }[]>;
+  occultEnabled: boolean;
 }): void {
   if (toolsRegistered) {
     return;
@@ -385,6 +427,116 @@ function registerTools(options: {
       }
     },
   );
+
+  if (getOccultMcpToolNames(options.occultEnabled).length > 0) {
+    registerOccultTools();
+  }
+}
+
+function registerOccultTools(): void {
+  registerTool<OccultCreateParams>(
+    "occult_create_reading_v1",
+    {
+      description:
+        "Create or idempotently replay an Occult v1 Tarot reading in a Council session. The caller must already be joined to the session.",
+      inputSchema: occultCreateSchema,
+    },
+    async (params, extra) => {
+      try {
+        const runtime = requireOccultService();
+        const resolvedName = requireOccultAgentName();
+        const response = await runtime.execute({
+          contractVersion: params.contract_version,
+          agentName: resolvedName,
+          plan: mapWireSpreadPlan(params.plan),
+          signal: extra.signal,
+        });
+        return toolOk("occult_create_reading_v1", response);
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  registerTool<OccultInspectParams>(
+    "occult_get_reading_v1",
+    {
+      description: "Inspect sanitized Occult v1 reading progress. Pass after_sequence to receive only newer events.",
+      inputSchema: occultInspectSchema,
+    },
+    async (params) => {
+      try {
+        const response = await requireOccultService().inspect({
+          contractVersion: params.contract_version,
+          agentName: requireOccultAgentName(),
+          sessionId: params.session_id,
+          readingId: params.reading_id,
+          afterSequence: params.after_sequence,
+        });
+        return toolOk("occult_get_reading_v1", response);
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  registerTool<OccultCancelParams>(
+    "occult_cancel_reading_v1",
+    {
+      description: "Cancel a running Occult v1 reading in a Council session.",
+      inputSchema: occultCancelSchema,
+    },
+    async (params) => {
+      try {
+        const response = await requireOccultService().cancel({
+          contractVersion: params.contract_version,
+          agentName: requireOccultAgentName(),
+          sessionId: params.session_id,
+          readingId: params.reading_id,
+        });
+        return toolOk("occult_cancel_reading_v1", response);
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  registerTool<OccultResumeParams>(
+    "occult_resume_reading_v1",
+    {
+      description:
+        "Resume an interrupted or approval-paused Occult v1 reading using the same full spread plan and reading id.",
+      inputSchema: occultResumeSchema,
+    },
+    async (params, extra) => {
+      try {
+        const response = await requireOccultService().execute({
+          contractVersion: params.contract_version,
+          agentName: requireOccultAgentName(),
+          plan: mapWireSpreadPlan(params.plan),
+          expectedReadingId: params.reading_id,
+          signal: extra.signal,
+        });
+        return toolOk("occult_resume_reading_v1", response);
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+}
+
+function requireOccultService(): OccultInterfaceService {
+  if (!occultService) {
+    throw new Error("Occult interfaces are disabled.");
+  }
+  return occultService;
+}
+
+function requireOccultAgentName(): string {
+  if (!agentName) {
+    throw new Error("Join the targeted Council session before using Occult tools.");
+  }
+  return agentName;
 }
 
 function formatSummonModelDescriptions(
@@ -447,6 +599,11 @@ function formatToolText(toolName: ToolName, payload: unknown, context: ToolConte
       return formatJoinCouncil(payload as GetCurrentSessionDataResponse);
     case "close_council":
       return formatCloseCouncil(payload as CloseCouncilResponse);
+    case "occult_cancel_reading_v1":
+    case "occult_create_reading_v1":
+    case "occult_get_reading_v1":
+    case "occult_resume_reading_v1":
+      return formatOccultReading(payload as OccultReadingDto);
     case "send_response":
       return formatSendResponse(payload as SendResponseResponse);
     case "summon_agent":
@@ -456,6 +613,28 @@ function formatToolText(toolName: ToolName, payload: unknown, context: ToolConte
       return _exhaustive;
     }
   }
+}
+
+function formatOccultReading(reading: OccultReadingDto): string {
+  const lines = [
+    `Occult contract: ${OCCULT_CONTRACT_VERSION}`,
+    `Reading: ${reading.reading_id}`,
+    `Session: ${reading.session_id}`,
+    `Spread: ${reading.spread_id}@${reading.spread_version}`,
+    `State: ${reading.state}`,
+    `Next sequence: ${reading.next_sequence}`,
+  ];
+  for (const node of reading.nodes) {
+    const pairing = node.minor_arcana ? `${node.major_arcana} + ${node.minor_arcana}` : node.major_arcana;
+    lines.push(`- ${node.node_id}: ${pairing} [${node.state}, attempt ${node.attempt}]`);
+    if (node.error) {
+      lines.push(`  Error ${node.error.code}: ${node.error.message}`);
+    }
+  }
+  if (reading.approvals.some((approval) => approval.state === "pending")) {
+    lines.push("Waiting for human approval.");
+  }
+  return lines.join("\n");
 }
 
 function formatStartCouncil(response: StartCouncilResponse): string {

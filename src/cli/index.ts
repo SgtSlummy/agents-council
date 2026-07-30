@@ -4,6 +4,7 @@ import { Command } from "commander";
 
 import { startMcpServer } from "../interfaces/mcp/server";
 import { launchDesktopApp } from "./desktopLauncher";
+import { registerOccultCliCommands } from "./occultCommands";
 
 type ResponseFormat = "markdown" | "json";
 
@@ -31,6 +32,8 @@ const main = async (): Promise<void> => {
         reportAndExit("Failed to start MCP server", error);
       }
     });
+
+  registerOccultCliCommands(program);
 
   program
     .command("chat")

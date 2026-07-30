@@ -1,6 +1,8 @@
 import type { KeyboardEvent } from "react";
 
+import type { OccultStatusResponse } from "../types";
 import { MessageBubble, type HallAgentType, type HallMessage } from "./MessageBubble";
+import { OccultReadingsPanel } from "./OccultReadingsPanel";
 
 type CouncilHallProps = {
   sessionTitle: string;
@@ -24,6 +26,7 @@ type CouncilHallProps = {
   canCloseCouncil: boolean;
   onOpenSummonAgent: () => void;
   summonDisabled: boolean;
+  occult: OccultStatusResponse | null;
 };
 
 export function CouncilHall({
@@ -44,6 +47,7 @@ export function CouncilHall({
   canCloseCouncil,
   onOpenSummonAgent,
   summonDisabled,
+  occult,
 }: CouncilHallProps) {
   const inSession = sessionStatus !== "none";
 
@@ -81,6 +85,8 @@ export function CouncilHall({
           <p className="council-empty">No council is in session. Spawn a session from the sidebar.</p>
         ) : (
           <>
+            <OccultReadingsPanel status={occult} />
+
             {request ? (
               <article className="council-request panel-secondary">
                 <header>
