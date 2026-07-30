@@ -1,6 +1,6 @@
 # Occult contract v1 in Agents Council
 
-Status: contract foundation only; disabled and disconnected from runtime entry points.
+Status: implemented and feature-gated; disabled by default.
 
 ## Purpose
 
@@ -45,10 +45,9 @@ payload values in validation errors.
 - Breaking field, enum, or semantic changes require a new major contract
   version and an explicit migration window.
 
-The feature-gate helper is fail-closed: only
-`{ occult: { enabled: true } }` is enabled. It is intentionally not called by
-an existing runtime path in this slice. A later task will add one bounded
-entry point after persistent reading state exists.
+The feature gate is fail-closed. Public CLI, MCP, and Council Hall entry points
+are registered only when `OCCULT_ENABLED=true`; the Hermes bridge and durable
+reading service are then composed through those bounded interfaces.
 
 ## Idempotency and event semantics
 

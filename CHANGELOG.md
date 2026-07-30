@@ -2,7 +2,7 @@
 
 All notable changes to Agents Council are documented here.
 
-## Unreleased
+## 0.5.0 - 2026-07-29
 
 ### Added
 

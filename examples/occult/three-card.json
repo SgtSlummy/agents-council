@@ -1,0 +1,42 @@
+{
+  "session_id": "replace-with-active-session-id",
+  "spread_id": "occult.spread.three-card",
+  "spread_version": "1.0.0",
+  "idempotency_key": "replace-with-unique-reading-key",
+  "deck_id": "occult.deck.starter",
+  "routing": {
+    "mode": "local_only",
+    "free_only": true,
+    "local_only": true,
+    "maximum_fallbacks": 0,
+    "maximum_cost_usd": 0
+  },
+  "maximum_parallelism": 1,
+  "nodes": [
+    {
+      "node_id": "past",
+      "agent_id": "occult.major.justice",
+      "message": "Audit the decisions and evidence that led to the current state."
+    },
+    {
+      "node_id": "present",
+      "agent_id": "occult.major.magician",
+      "message": "Design the most useful implementation for the present state."
+    },
+    {
+      "node_id": "future",
+      "agent_id": "occult.major.judgement",
+      "message": "Evaluate readiness, risks, and the next release decision."
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "past",
+      "target": "present"
+    },
+    {
+      "source": "present",
+      "target": "future"
+    }
+  ]
+}

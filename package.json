@@ -1,6 +1,6 @@
 {
   "name": "agents-council",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "files": [
     "scripts/*.cjs",
@@ -70,12 +70,12 @@
   "author": "Alex Gavrilescu (https://github.com/MrLesk)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrLesk/agents-council.git"
+    "url": "git+https://github.com/SgtSlummy/agents-council.git"
   },
   "bugs": {
-    "url": "https://github.com/MrLesk/agents-council/issues"
+    "url": "https://github.com/SgtSlummy/agents-council/issues"
   },
-  "homepage": "https://github.com/MrLesk/agents-council",
+  "homepage": "https://github.com/SgtSlummy/agents-council",
   "keywords": [
     "mcp",
     "council",

@@ -2,9 +2,9 @@
 
 ## Status
 
-The Hermes bridge and spread scheduler are core-library capabilities. They are
-not wired into the CLI, MCP server, or desktop UI yet, so live Occult execution
-remains disabled by default. That public integration is tracked separately.
+The Hermes bridge and spread scheduler are wired into the CLI, MCP server, and
+Council Hall behind `OCCULT_ENABLED=true`. Live Occult execution remains
+disabled by default.
 
 The implementation provides:
 
@@ -74,9 +74,8 @@ contain a route summary and no error.
 
 ## Configuration
 
-Live bridge construction should occur only when the existing Occult feature
-gate is explicitly enabled. A future interface adapter should read its own
-configuration and instantiate the core object:
+Live bridge construction occurs only when the Occult feature gate is explicitly
+enabled. The interface adapter reads:
 
 ```yaml
 occult:
