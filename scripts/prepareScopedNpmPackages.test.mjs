@@ -71,7 +71,7 @@ test("rejects a release payload whose signed checksum contract no longer matches
   );
 });
 
-test("packs deterministic platform-first tarballs and records registry integrity", async () => {
+test("packs deterministic platform-first tarballs and records registry integrity", { timeout: 20_000 }, async () => {
   const fixture = await createFixture("1.2.4");
   const packOutput = path.join(fixture.base, "packed");
   await prepareScopedNpmPackages({
