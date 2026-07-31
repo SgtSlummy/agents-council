@@ -1,11 +1,11 @@
 ---
 id: TASK-28
 title: Launch Agents Council v0.5.2 as signed Occult dependency
-status: In Progress
+status: Done
 assignee:
   - Codex
 created_date: '2026-07-30 23:20'
-updated_date: '2026-07-30 23:25'
+updated_date: '2026-07-31 07:33'
 labels:
   - occult
   - release
@@ -36,24 +36,24 @@ Ship a GitHub-release-first Agents Council patch release for Occult System v1.0.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Every platform archive, manifest, and checksum remains reproducible and passes release validation.
-- [ ] #2 The complete release checksum manifest has a verifiable Sigstore bundle tied to the repository release workflow.
-- [ ] #3 Fork installation instructions use signed GitHub release assets and never invoke agents-council@latest.
-- [ ] #4 CLI, desktop, MCP, Occult persistence, redaction, restart/resume, backup/restore, and rollback checks pass.
-- [ ] #5 v0.5.1 remains immutable and v0.5.2 is published only after the protected launch canary succeeds.
+- [x] #1 Every platform archive, manifest, and checksum remains reproducible and passes release validation.
+- [x] #2 The complete release checksum manifest has a verifiable Sigstore bundle tied to the repository release workflow.
+- [x] #3 Fork installation instructions use signed GitHub release assets and never invoke agents-council@latest.
+- [x] #4 CLI, desktop, MCP, Occult persistence, redaction, restart/resume, backup/restore, and rollback checks pass.
+- [x] #5 v0.5.1 remains immutable and v0.5.2 is published only after the protected launch canary succeeds.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria are fully checked and match implemented behavior.
-- [ ] #2 Implementation plan is recorded in the task and reflects the final approach.
-- [ ] #3 bun run typecheck passes (when code changed).
-- [ ] #4 bun run format:check passes (when code changed).
-- [ ] #5 Relevant validation is run and recorded in task notes (tests, smoke checks, or manual verification).
-- [ ] #6 Documentation is updated in the same task when user/developer behavior changes (CLI, MCP contract, UI flow,      packaging/release behavior).
-- [ ] #7 Breaking changes and migration impact are documented in notes/final summary when applicable.
-- [ ] #8 Final summary is added with what changed, why, validation run, and remaining risks/follow-ups.
-- [ ] #9 Task status is set to Done only after all DoD items are checked.
+- [x] #1 Acceptance criteria are fully checked and match implemented behavior.
+- [x] #2 Implementation plan is recorded in the task and reflects the final approach.
+- [x] #3 bun run typecheck passes (when code changed).
+- [x] #4 bun run format:check passes (when code changed).
+- [x] #5 Relevant validation is run and recorded in task notes (tests, smoke checks, or manual verification).
+- [x] #6 Documentation is updated in the same task when user/developer behavior changes (CLI, MCP contract, UI flow,      packaging/release behavior).
+- [x] #7 Breaking changes and migration impact are documented in notes/final summary when applicable.
+- [x] #8 Final summary is added with what changed, why, validation run, and remaining risks/follow-ups.
+- [x] #9 Task status is set to Done only after all DoD items are checked.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -72,4 +72,12 @@ Boundary refinement after repository inspection: the end-to-end Occult bootstrap
 
 <!-- SECTION:NOTES:BEGIN -->
 Implemented v0.5.2 metadata, Sigstore signing/verification for the complete release checksum manifest, delayed latest-marker promotion, GitHub-release-first documentation, and release-policy tests. Validation: typecheck passed; lint passed; full 62-test suite passed; standalone build passed; release YAML parsed successfully. Repository-wide format:check is blocked locally by the existing Windows CRLF checkout baseline across 79 untouched files; changed-file semantics will be verified by clean GitHub Actions checkouts.
+
+Release evidence: Agents Council v0.5.2 is a public signed release targeting 453676402fb3b3183aca6eccf64067ac4e86a4de and is marked latest. The protected Hermes production gate passed at run 30611489756. The public Windows installer canary passed, followed by a 13/13 public runtime and recovery canary using the signed Council v0.5.2 archive and Hermes v1.0.3 corrective installer. Signature-identity mismatch and checksum corruption were both rejected. The canonical quickstart is linked from both repository READMEs and homepages. Redacted evidence was attached to GitHub issue #16; no prompts, credentials, tokens, private code, local paths, or signed URLs were published.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Shipped Agents Council v0.5.2 as the signed, immutable Occult dependency. The release workflow now signs and verifies the complete checksum manifest, publishes Sigstore evidence with all platform archives, and defers latest promotion until the protected launch canary passes. Fork-facing documentation uses pinned GitHub release assets and the shared Hermes Occult quickstart without invoking the upstream agents-council@latest npm package. Validation included typecheck, lint, the full 62-test suite, standalone build, release-policy validation, public asset digest verification, a clean Windows per-user installer canary, Council approval pause/restart/resume, backup/restore, checksummed rollback, and negative signature/checksum tests. Runtime contract 1.0.0 and state schema 3 remain unchanged. No launch-blocking risks remain; broader provider support, remaining Major Arcana, npm distribution, and hosted services remain post-launch scope.
+<!-- SECTION:FINAL_SUMMARY:END -->
