@@ -274,8 +274,15 @@ jobs:
           set -euo pipefail
 
           registry_integrity() {
-            npm view --userconfig=/dev/null "$1" dist.integrity --json 2>/dev/null |
-              jq -r 'if type == "string" then . else empty end' || true
+            local name="$1"
+            local version="$2"
+            local encoded_name
+            encoded_name="${name/@/%40}"
+            encoded_name="${encoded_name//\//%2f}"
+            curl --fail --silent --show-error --location \
+              --header 'Cache-Control: no-cache' \
+              "https://registry.npmjs.org/${encoded_name}/${version}" 2>/dev/null |
+              jq -r '.dist.integrity // empty' || true
           }
 
           publish_one() {
@@ -292,7 +299,7 @@ jobs:
             fi
 
             local current_integrity
-            current_integrity="$(registry_integrity "$spec")"
+            current_integrity="$(registry_integrity "$name" "$version")"
             if [[ -n "$current_integrity" ]]; then
               test "$current_integrity" = "$expected_integrity"
               echo "$spec already matches the prepared tarball; skipping."
@@ -301,7 +308,7 @@ jobs:
 
             npm publish "$tarball" --access public
             for attempt in {1..30}; do
-              current_integrity="$(registry_integrity "$spec")"
+              current_integrity="$(registry_integrity "$name" "$version")"
               if [[ "$current_integrity" == "$expected_integrity" ]]; then
                 return
               fi
@@ -378,7 +385,7 @@ jobs:
         run: |
           set -euo pipefail
           PREFIX="${RUNNER_TEMP}/agents-council-registry-canary"
-          npm install --global --prefix "$PREFIX" \
+          npm install --userconfig=/dev/null --global --prefix "$PREFIX" \
             "@sgtslummy/agents-council@${VERSION}" --ignore-scripts --no-audit --no-fund
           npm list --global --prefix "$PREFIX" \
             "${PLATFORM_PACKAGE}@${VERSION}" > /dev/null
