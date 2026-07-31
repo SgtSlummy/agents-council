@@ -53,15 +53,17 @@ bun run build
 
 ## Packaging model
 
-- Root package: `agents-council` (single user-facing package).
+- Canonical distribution: signed GitHub release bundles.
+- Optional fork-owned npm root: `@sgtslummy/agents-council`.
 - Optional platform packages:
-  - `agents-council-linux-x64`
-  - `agents-council-linux-arm64`
-  - `agents-council-darwin-x64`
-  - `agents-council-darwin-arm64`
-  - `agents-council-windows-x64`
+  - `@sgtslummy/agents-council-linux-x64`
+  - `@sgtslummy/agents-council-linux-arm64`
+  - `@sgtslummy/agents-council-darwin-x64`
+  - `@sgtslummy/agents-council-darwin-arm64`
+  - `@sgtslummy/agents-council-windows-x64`
 - Runtime resolution:
   - `scripts/cli.cjs` resolves the local platform package via `scripts/resolveBinary.cjs`.
+  - The resolver derives the npm scope from the installed root package.
   - The resolved `council` binary handles CLI entrypoints (`--help`, `--version`, `mcp`) and desktop-default launch.
 
 Each platform package includes:
@@ -71,6 +73,21 @@ Each platform package includes:
 
 Root and platform package metadata declares Occult contract `1.0.0`
 compatibility and the `OCCULT_ENABLED` feature gate.
+
+The repository source package is private and has no unscoped optional
+dependencies. Assemble publishable manifests only from extracted, verified
+GitHub release bundles:
+
+```bash
+node scripts/prepareScopedNpmPackages.mjs \
+  --release-root release-root \
+  --output scoped-npm \
+  --version 0.5.2
+
+node scripts/packScopedNpmPackages.mjs \
+  --assembly-root scoped-npm \
+  --output packed
+```
 
 Generate and security-check a collected payload:
 
@@ -86,16 +103,24 @@ bun scripts/generateOccultReleaseManifest.ts \
 - `.github/workflows/ci.yml` validates Electrobun stable artifact generation on macOS, Windows, and Linux.
 - `.github/workflows/release.yml`:
   - builds host-native desktop artifacts and CLI binaries for all supported platform packages,
-  - publishes the root npm package and platform optional packages,
-  - runs install-sanity on macOS/Windows/Linux for `--version`, `--help`, and `mcp`,
   - uploads desktop-launchable installer/artifact files to GitHub Releases.
   - attaches platform-labeled Occult manifests and SHA-256 checksum files.
+- `.github/workflows/npm-release.yml`:
+  - verifies the exact signed GitHub release before assembling npm tarballs,
+  - runs native tarball canaries on all five target runners,
+  - supports read-only registry canaries,
+  - stages or publishes platform packages before the scoped root,
+  - uses npm trusted publishing through the protected `npm-production`
+    environment and never reads an npm token.
 
 See `docs/occult-production-release.md` for the clean release gate, security
 review, upgrade, backup/restore, interruption recovery, and rollback checklist.
+See `docs/npm-scoped-release.md` for namespace bootstrap, trusted-publisher
+configuration, publication, registry canaries, and npm rollback.
 
 Release sequencing gate:
-- Do not cut a public release tag until TASK-26.6 (canonical desktop UI integration) is merged and validated.
+- Do not advertise the scoped npm install command until every native registry
+  canary passes.
 
 ## Notes
 

@@ -54,4 +54,32 @@ describe("Occult release configuration", () => {
     expect(readme).not.toContain("agents-council@latest");
     expect(readme).not.toContain("npm install -g agents-council");
   });
+
+  test("keeps scoped npm distribution fork-owned, tokenless, and platform-first", async () => {
+    const packageJson = await Bun.file("package.json").json();
+    const workflow = await Bun.file(".github/workflows/npm-release.yml").text();
+
+    expect(packageJson.private).toBe(true);
+    expect(packageJson.optionalDependencies).toBeUndefined();
+    for (const packageName of [
+      "@sgtslummy/agents-council",
+      "@sgtslummy/agents-council-linux-x64",
+      "@sgtslummy/agents-council-linux-arm64",
+      "@sgtslummy/agents-council-darwin-x64",
+      "@sgtslummy/agents-council-darwin-arm64",
+      "@sgtslummy/agents-council-windows-x64",
+    ]) {
+      expect(workflow).toContain(packageName);
+    }
+    expect(workflow).toContain("environment: npm-production");
+    expect(workflow).toContain("id-token: write");
+    expect(workflow).toContain("npm stage publish");
+    expect(workflow).toContain('npm publish "$tarball" --access public');
+    expect(workflow).toContain('select(.kind == "platform")');
+    expect(workflow).toContain('select(.kind == "root")');
+    expect(workflow).toContain("cosign verify-blob");
+    expect(workflow).toContain("npmInstallCanary.mjs");
+    expect(workflow).not.toContain("secrets.NPM_TOKEN");
+    expect(workflow).not.toContain("NODE_AUTH_TOKEN");
+  });
 });

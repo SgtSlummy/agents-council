@@ -1,3 +1,5 @@
+const rootPackage = require("../package.json");
+
 function mapPlatform(platform = process.platform) {
   switch (platform) {
     case "win32":
@@ -20,14 +22,21 @@ function mapArch(arch = process.arch) {
   }
 }
 
-function getPackageName(platform = process.platform, arch = process.arch) {
-  return `agents-council-${mapPlatform(platform)}-${mapArch(arch)}`;
+function getPackageScope(packageName = rootPackage.name) {
+  const match = /^(@[^/]+)\//.exec(packageName);
+  return match?.[1] ?? null;
 }
 
-function resolveBinaryPath(platform = process.platform, arch = process.arch) {
-  const packageName = getPackageName(platform, arch);
+function getPackageName(platform = process.platform, arch = process.arch, packageName = rootPackage.name) {
+  const platformPackage = `agents-council-${mapPlatform(platform)}-${mapArch(arch)}`;
+  const scope = getPackageScope(packageName);
+  return scope ? `${scope}/${platformPackage}` : platformPackage;
+}
+
+function resolveBinaryPath(platform = process.platform, arch = process.arch, packageName = rootPackage.name) {
+  const platformPackageName = getPackageName(platform, arch, packageName);
   const binary = `council${platform === "win32" ? ".exe" : ""}`;
-  return require.resolve(`${packageName}/${binary}`);
+  return require.resolve(`${platformPackageName}/${binary}`);
 }
 
-module.exports = { getPackageName, resolveBinaryPath };
+module.exports = { getPackageName, getPackageScope, resolveBinaryPath };

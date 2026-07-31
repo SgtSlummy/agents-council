@@ -1,6 +1,7 @@
 {
   "name": "agents-council",
   "version": "0.5.2",
+  "private": true,
   "type": "module",
   "files": [
     "scripts/*.cjs",
@@ -16,13 +17,6 @@
     ],
     "featureGate": "OCCULT_ENABLED"
   },
-  "optionalDependencies": {
-    "agents-council-darwin-arm64": "*",
-    "agents-council-darwin-x64": "*",
-    "agents-council-linux-arm64": "*",
-    "agents-council-linux-x64": "*",
-    "agents-council-windows-x64": "*"
-  },
   "scripts": {
     "build": "bun build src/cli/index.ts --compile --outfile dist/council",
     "cli": "bun src/cli/index.ts",
@@ -31,6 +25,10 @@
     "desktop:build:stable": "electrobun build --env=stable",
     "test": "bun test",
     "release:manifest": "bun scripts/generateOccultReleaseManifest.ts",
+    "npm:prepare:scoped": "node scripts/prepareScopedNpmPackages.mjs",
+    "npm:prepare:bootstrap": "node scripts/prepareNpmBootstrapPackages.mjs",
+    "npm:pack:scoped": "node scripts/packScopedNpmPackages.mjs",
+    "npm:test:scoped": "node --test scripts/prepareScopedNpmPackages.test.mjs",
     "test:occult-hermes-e2e": "bun scripts/occultHermesE2E.ts",
     "lint": "biome lint .",
     "format": "biome format --write .",

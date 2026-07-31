@@ -22,13 +22,6 @@
         "typescript": "5.9.3",
         "zod": "4.2.1",
       },
-      "optionalDependencies": {
-        "agents-council-darwin-arm64": "*",
-        "agents-council-darwin-x64": "*",
-        "agents-council-linux-arm64": "*",
-        "agents-council-linux-x64": "*",
-        "agents-council-windows-x64": "*",
-      },
     },
   },
   "packages": {
