@@ -23,9 +23,10 @@ Exact-version optional dependencies:
 ```
 
 The root launcher derives the scope from its own package name. Platform
-packages contain the standalone CLI, Electrobun desktop artifacts, the Occult
-release manifest, and its checksums. Occult remains disabled unless
-`OCCULT_ENABLED=true`.
+packages contain the standalone CLI, the Occult release manifest, and its
+checksums. Electrobun desktop installers remain signed GitHub release assets;
+they are intentionally excluded from npm packages to stay below registry
+request-size limits. Occult remains disabled unless `OCCULT_ENABLED=true`.
 
 The repository source package is marked `private`. Only
 `scripts/prepareScopedNpmPackages.mjs` may create publishable manifests.

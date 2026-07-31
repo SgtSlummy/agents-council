@@ -7,7 +7,12 @@ import os from "node:os";
 import path from "node:path";
 
 import { PLATFORM_PACKAGES, prepareScopedNpmPackages } from "./prepareScopedNpmPackages.mjs";
-import { normalizeNpmPackResult, packScopedNpmPackages } from "./packScopedNpmPackages.mjs";
+import {
+  NPM_SAFE_TARBALL_BYTES,
+  assertPublishableTarballSize,
+  normalizeNpmPackResult,
+  packScopedNpmPackages,
+} from "./packScopedNpmPackages.mjs";
 import { prepareNpmBootstrapPackages } from "./prepareNpmBootstrapPackages.mjs";
 import { verifyChecksumManifest } from "./verifyChecksumManifest.mjs";
 
@@ -55,6 +60,11 @@ test("assembles a scoped root package after all exact-version platform packages"
   assert.deepEqual(windowsPackage.os, ["win32"]);
   assert.deepEqual(windowsPackage.cpu, ["x64"]);
   assert.ok(windowsPackage.files.includes("council.exe"));
+  assert.ok(!windowsPackage.files.includes("desktop-artifacts/"));
+
+  const windowsEntry = manifest.packages.find((entry) => entry.name === windowsPackage.name);
+  assert.ok(windowsEntry.files.some((entry) => entry.path === "council.exe"));
+  assert.ok(!windowsEntry.files.some((entry) => entry.path.startsWith("desktop-artifacts/")));
 });
 
 test("rejects a release payload whose signed checksum contract no longer matches", async () => {
@@ -109,6 +119,12 @@ test("accepts npm 10 array and npm 12 keyed pack JSON without weakening identity
       ),
     /Unexpected npm pack result/,
   );
+});
+
+test("rejects npm tarballs above the safe registry request limit", () => {
+  assert.doesNotThrow(() => assertPublishableTarballSize("@sgtslummy/fixture", NPM_SAFE_TARBALL_BYTES));
+  assert.throws(() => assertPublishableTarballSize("@sgtslummy/fixture", NPM_SAFE_TARBALL_BYTES + 1), /safe limit/);
+  assert.throws(() => assertPublishableTarballSize("@sgtslummy/fixture", 0), /Invalid npm tarball size/);
 });
 
 test("verifies transport checksums without platform-specific shell tools", async () => {
