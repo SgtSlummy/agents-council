@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Signed GitHub release tag used as the binary source
         required: true
-        default: v0.5.3
+        default: v0.5.4
         type: string
       mode:
         description: Verify only, stage for 2FA approval, or publish directly
