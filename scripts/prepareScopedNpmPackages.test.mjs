@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { PLATFORM_PACKAGES, prepareScopedNpmPackages } from "./prepareScopedNpmPackages.mjs";
-import { packScopedNpmPackages } from "./packScopedNpmPackages.mjs";
+import { normalizeNpmPackResult, packScopedNpmPackages } from "./packScopedNpmPackages.mjs";
 import { prepareNpmBootstrapPackages } from "./prepareNpmBootstrapPackages.mjs";
 
 const tempDirectories = [];
@@ -90,6 +90,24 @@ test("packs deterministic platform-first tarballs and records registry integrity
   assert.equal(manifest.packages.at(-1).name, "@sgtslummy/agents-council");
   assert.ok(manifest.packages.every((entry) => entry.integrity.startsWith("sha512-")));
   assert.ok(manifest.packages.every((entry) => /^[a-f0-9]{64}$/.test(entry.sha256)));
+});
+
+test("accepts npm 10 array and npm 12 keyed pack JSON without weakening identity checks", () => {
+  const packed = {
+    name: "@sgtslummy/agents-council",
+    version: "1.2.4",
+    filename: "sgtslummy-agents-council-1.2.4.tgz",
+  };
+  assert.equal(normalizeNpmPackResult([packed], "@sgtslummy/agents-council"), packed);
+  assert.equal(normalizeNpmPackResult({ "@sgtslummy/agents-council": packed }, "@sgtslummy/agents-council"), packed);
+  assert.throws(
+    () =>
+      normalizeNpmPackResult(
+        { "@sgtslummy/other": { ...packed, name: "@sgtslummy/other" } },
+        "@sgtslummy/agents-council",
+      ),
+    /Unexpected npm pack result/,
+  );
 });
 
 test("fails closed on version mismatch and requires explicit output replacement", async () => {
