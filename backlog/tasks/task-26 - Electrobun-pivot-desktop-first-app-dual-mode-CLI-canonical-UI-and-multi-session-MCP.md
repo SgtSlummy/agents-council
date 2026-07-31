@@ -3,10 +3,10 @@ id: TASK-26
 title: >-
   Electrobun pivot: desktop-first app, dual-mode CLI, canonical UI, and
   multi-session MCP
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-02-21 21:11'
-updated_date: '2026-02-21 21:24'
+updated_date: '2026-07-31 07:45'
 labels:
   - electrobun
   - desktop
@@ -39,12 +39,18 @@ Deliver the product pivot from web UI + Bun-compiled CLI to an Electrobun deskto
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Launching the built app directly opens the desktop Council interface by default on supported platforms.
-- [ ] #2 Invoking the binary from terminal preserves CLI usage for council operations, including MCP server startup behavior.
-- [ ] #3 The production UI uses the canonical Council Sidebar + Council Hall structure from the design bundle and is wired to real council data/operations.
-- [ ] #4 Council state supports multi-session workflows with explicit session targeting in MCP interactions.
+- [x] #1 Launching the built app directly opens the desktop Council interface by default on supported platforms.
+- [x] #2 Invoking the binary from terminal preserves CLI usage for council operations, including MCP server startup behavior.
+- [x] #3 The production UI uses the canonical Council Sidebar + Council Hall structure from the design bundle and is wired to real council data/operations.
+- [x] #4 Council state supports multi-session workflows with explicit session targeting in MCP interactions.
 - [ ] #5 Distribution remains a single user-facing npm package with platform-specific optional dependency packages and cross-platform release validation.
 <!-- AC:END -->
+
+## Definition of Done
+<!-- DOD:BEGIN -->
+- [x] #1 Cross-platform smoke validation covers desktop launch mode and terminal CLI mode on macOS, Windows, and Linux.
+- [x] #2 Upgrade notes document MCP contract changes and migration expectations for clients.
+<!-- DOD:END -->
 
 ## Implementation Plan
 
@@ -73,8 +79,8 @@ Delivery decisions locked with user:
 - `council chat`: retained as alias to desktop app behavior.
 <!-- SECTION:PLAN:END -->
 
-## Definition of Done
-<!-- DOD:BEGIN -->
-- [ ] #1 Cross-platform smoke validation covers desktop launch mode and terminal CLI mode on macOS, Windows, and Linux.
-- [ ] #2 Upgrade notes document MCP contract changes and migration expectations for clients.
-<!-- DOD:END -->
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Post-launch reconciliation: TASK-26.1 through TASK-26.6 are shipped and now finalized with current CI and v0.5.2 release evidence. Desktop-default launch, CLI and MCP parity, canonical Council Hall integration, multi-session state, explicit session targeting, cross-platform smoke validation, and MCP migration notes are complete. TASK-26.7 remains open solely for the intentionally deferred npm publication and registry install-sanity policy; the parent remains In Progress until that public distribution decision and implementation are complete.
+<!-- SECTION:NOTES:END -->
