@@ -4,14 +4,27 @@ All notable changes to Agents Council are documented here.
 
 ## Unreleased
 
+## 0.5.3 - 2026-07-31
+
 ### Added
 
+- Added `council tarot` as the public command for Tarot Router readings.
 - Added fork-owned scoped npm assembly for one root launcher and five native
   platform packages sourced only from a verified signed GitHub release.
 - Added tokenless trusted-publishing gates, platform-first ordering, dry-run
   packaging, native tarball canaries, and public registry canaries.
 - Added inert namespace-bootstrap packages so the first human-authorized npm
   action can establish package ownership without publishing executable code.
+
+### Changed
+
+- Renamed the user-facing Occult System product to **Tarot Router** across the
+  CLI, Council Hall, README, and operator documentation.
+
+### Compatibility
+
+- `council occult`, contract `1.0.0`, state schema 3, `OCCULT_*` environment
+  variables, MCP tool names, persisted fields, and release assets are unchanged.
 
 ### Security
 

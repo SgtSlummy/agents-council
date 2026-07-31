@@ -69,6 +69,8 @@ describe("OccultReadingsPanel", () => {
   test("renders sanitized pairings, state, approvals, and redacted errors", () => {
     const html = renderToStaticMarkup(<OccultReadingsPanel status={status} />);
 
+    expect(html).toContain("Tarot Router");
+    expect(html).toContain('aria-label="Tarot Router readings"');
     expect(html).toContain("occult.major.justice + minor.swords.king.audit");
     expect(html).toContain("publish: pending");
     expect(html).toContain("AUDIT_FAILED");
@@ -78,7 +80,7 @@ describe("OccultReadingsPanel", () => {
     expect(html).not.toContain("Authorization");
   });
 
-  test("does not render the panel while Occult is disabled", () => {
+  test("does not render the panel while Tarot Router is disabled", () => {
     expect(
       renderToStaticMarkup(
         <OccultReadingsPanel

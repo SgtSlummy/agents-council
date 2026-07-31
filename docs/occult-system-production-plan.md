@@ -1,4 +1,7 @@
-# Occult System Production Plan for Agents Council
+# Tarot Router Production Plan for Agents Council
+
+> Tarot Router is the public product name. This plan retains `Occult` only
+> where it names the stable v1 contract, types, paths, state, or feature gates.
 
 Status: proposal
 Target branch: `main`
@@ -8,12 +11,12 @@ behavior, or deployment is enabled
 ## 1. Outcome
 
 Agents Council will become the orchestration and deliberation plane for the
-Occult System while Hermes remains the execution and provider-routing authority.
+Tarot Router while Hermes remains the execution and provider-routing authority.
 
 The finished system will let a user:
 
 - Start an ordinary council session exactly as today.
-- Start an Occult reading from Council Hall or MCP.
+- Start a Tarot Router reading from Council Hall or MCP.
 - Select a **Deck** and **Spread**, or use a validated default.
 - Assign **Major Arcana** agent identities to reading positions.
 - Let Hermes/Mythos select compatible **Minor Arcana** model routes, or request

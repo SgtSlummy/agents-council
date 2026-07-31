@@ -10,10 +10,10 @@ export function OccultReadingsPanel({ status }: OccultReadingsPanelProps) {
   }
 
   return (
-    <section className="occult-readings-panel" aria-label="Occult readings">
+    <section className="occult-readings-panel" aria-label="Tarot Router readings">
       <header className="occult-readings-header">
         <div>
-          <span className="occult-eyebrow">Occult System</span>
+          <span className="occult-eyebrow">Tarot Router</span>
           <h3>Active Readings</h3>
         </div>
         <div className="occult-health">

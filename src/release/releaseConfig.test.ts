@@ -46,11 +46,11 @@ describe("Occult release configuration", () => {
     expect(release).toContain("$env:AGENTS_COUNCIL_VERSION = $tag");
   });
 
-  test("documents only the GitHub-first Occult distribution path", async () => {
+  test("documents only the GitHub-first Tarot Router distribution path", async () => {
     const readme = await Bun.file("README.md").text();
 
     expect(readme).toContain("https://github.com/SgtSlummy/agents-council/releases");
-    expect(readme).toContain("SgtSlummy/hermes-agent/blob/main/docs/occult/quickstart.md");
+    expect(readme).toContain("SgtSlummy/hermes-agent/blob/main/docs/tarot-router/quickstart.md");
     expect(readme).not.toContain("agents-council@latest");
     expect(readme).not.toContain("npm install -g agents-council");
   });
