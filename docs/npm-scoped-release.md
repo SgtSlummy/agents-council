@@ -55,7 +55,7 @@ Run the non-writing gate:
 ```bash
 gh workflow run npm-release.yml \
   --repo SgtSlummy/agents-council \
-  -f release_tag=v0.5.4 \
+  -f release_tag=v0.5.5 \
   -f mode=verify-only
 ```
 
@@ -126,9 +126,9 @@ After the six trusted-publisher records exist, stage the signed release:
 ```bash
 gh workflow run npm-release.yml \
   --repo SgtSlummy/agents-council \
-  -f release_tag=v0.5.4 \
+  -f release_tag=v0.5.5 \
   -f mode=stage \
-  -f 'confirm=stage:@sgtslummy/agents-council@0.5.4'
+  -f 'confirm=stage:@sgtslummy/agents-council@0.5.5'
 ```
 
 Approve the five platform packages with 2FA, verify their public integrity,
@@ -137,14 +137,14 @@ then approve the root package. Run the read-only public canary:
 ```bash
 gh workflow run npm-release.yml \
   --repo SgtSlummy/agents-council \
-  -f release_tag=v0.5.4 \
+  -f release_tag=v0.5.5 \
   -f mode=canary
 ```
 
 Only after that canary passes should documentation advertise:
 
 ```bash
-npm install --global @sgtslummy/agents-council@0.5.4
+npm install --global @sgtslummy/agents-council@0.5.5
 ```
 
 ## Failure and recovery

@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Signed GitHub release tag used as the binary source
         required: true
-        default: v0.5.4
+        default: v0.5.5
         type: string
       mode:
         description: Verify only, stage for 2FA approval, or publish directly
@@ -146,7 +146,7 @@ jobs:
             --output scoped-npm \
             --version "$VERSION"
           while IFS=$'\t' read -r directory name version; do
-            if npm view "${name}@${version}" version > /dev/null 2>&1; then
+            if npm view --userconfig=/dev/null "${name}@${version}" version > /dev/null 2>&1; then
               npm pack --dry-run --ignore-scripts "./scoped-npm/${directory}" > /dev/null
             else
               npm publish --dry-run --ignore-scripts "./scoped-npm/${directory}" > /dev/null
@@ -261,7 +261,7 @@ jobs:
         run: |
           set -euo pipefail
           while IFS= read -r package; do
-            if ! npm view "$package" name > /dev/null 2>&1; then
+            if ! npm view --userconfig=/dev/null "$package" name > /dev/null 2>&1; then
               echo "$package does not exist. Complete the documented one-time bootstrap first." >&2
               exit 1
             fi
@@ -274,7 +274,7 @@ jobs:
           set -euo pipefail
 
           registry_integrity() {
-            npm view "$1" dist.integrity --json 2>/dev/null |
+            npm view --userconfig=/dev/null "$1" dist.integrity --json 2>/dev/null |
               jq -r 'if type == "string" then . else empty end' || true
           }
 

@@ -4,6 +4,23 @@ All notable changes to Agents Council are documented here.
 
 ## Unreleased
 
+## 0.5.5 - 2026-07-31
+
+### Fixed
+
+- Made npm registry metadata probes explicitly unauthenticated so the
+  protected OIDC publisher can verify public package integrity without
+  inheriting the setup-node placeholder token.
+- Added regression coverage for public release-existence, staged-bootstrap,
+  and post-publish integrity probes.
+
+### Compatibility
+
+- The partially published Linux x64 package at `0.5.4` remains immutable.
+  The complete six-package scoped npm release moves forward as `0.5.5`.
+- Tarot Router branding, runtime contract `1.0.0`, Council state schema 3,
+  package names, CLI aliases, and signed asset names are unchanged.
+
 ## 0.5.4 - 2026-07-31
 
 ### Fixed

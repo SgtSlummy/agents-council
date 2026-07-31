@@ -75,7 +75,9 @@ describe("Occult release configuration", () => {
     expect(workflow).toContain("id-token: write");
     expect(workflow).toContain("npm stage publish");
     expect(workflow).toContain('npm publish "$tarball" --access public');
-    expect(workflow).toContain(`npm view "\${name}@\${version}" version`);
+    expect(workflow).toContain(`npm view --userconfig=/dev/null "\${name}@\${version}" version`);
+    expect(workflow).toContain('npm view --userconfig=/dev/null "$1" dist.integrity --json');
+    expect(workflow).toContain('npm view --userconfig=/dev/null "$package" name');
     expect(workflow).toContain(`npm pack --dry-run --ignore-scripts "./scoped-npm/\${directory}"`);
     expect(workflow).toContain(`npm publish --dry-run --ignore-scripts "./scoped-npm/\${directory}"`);
     expect(workflow).toContain('select(.kind == "platform")');
