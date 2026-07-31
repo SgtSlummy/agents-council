@@ -4,6 +4,8 @@ All notable changes to Agents Council are documented here.
 
 ## Unreleased
 
+## 0.5.3 - 2026-07-31
+
 ### Added
 
 - Added `council tarot` as the public command for Tarot Router readings.
