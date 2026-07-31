@@ -43,11 +43,7 @@ export async function packScopedNpmPackages(options) {
         windowsHide: true,
       },
     );
-    const result = JSON.parse(stdout);
-    if (!Array.isArray(result) || result.length !== 1) {
-      throw new Error(`Unexpected npm pack result for ${packageName}`);
-    }
-    const packed = result[0];
+    const packed = normalizeNpmPackResult(JSON.parse(stdout), packageName);
     if (packed.name !== packageName || packed.version !== entry.version) {
       throw new Error(`npm pack identity mismatch for ${packageName}`);
     }
@@ -77,6 +73,19 @@ export async function packScopedNpmPackages(options) {
   checksumLines.push(`${manifestHash}  ${PACK_MANIFEST}`);
   await writeFile(path.join(output, "SHA256SUMS.txt"), `${checksumLines.join("\n")}\n`, "utf8");
   return manifest;
+}
+
+export function normalizeNpmPackResult(result, packageName) {
+  if (Array.isArray(result) && result.length === 1) {
+    return result[0];
+  }
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    const entries = Object.values(result);
+    if (entries.length === 1 && entries[0]?.name === packageName) {
+      return entries[0];
+    }
+  }
+  throw new Error(`Unexpected npm pack result for ${packageName}`);
 }
 
 function runNpm(npmCommand, args, options) {
