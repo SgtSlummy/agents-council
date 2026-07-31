@@ -135,7 +135,7 @@ jobs:
               --archive "$archive" \
               --destination "release-root/$package"
           done
-      - name: Assemble and dry-run all scoped packages
+      - name: Assemble and validate all scoped packages
         env:
           VERSION: ${{ steps.request.outputs.version }}
         shell: bash
@@ -145,9 +145,13 @@ jobs:
             --release-root release-root \
             --output scoped-npm \
             --version "$VERSION"
-          while IFS= read -r directory; do
-            npm publish --dry-run --ignore-scripts "./scoped-npm/${directory}" > /dev/null
-          done < <(jq -r '.packages[].directory' scoped-npm/scoped-npm-manifest.json)
+          while IFS=$'\t' read -r directory name version; do
+            if npm view "${name}@${version}" version > /dev/null 2>&1; then
+              npm pack --dry-run --ignore-scripts "./scoped-npm/${directory}" > /dev/null
+            else
+              npm publish --dry-run --ignore-scripts "./scoped-npm/${directory}" > /dev/null
+            fi
+          done < <(jq -r '.packages[] | [.directory, .name, .version] | @tsv' scoped-npm/scoped-npm-manifest.json)
           node scripts/packScopedNpmPackages.mjs \
             --assembly-root scoped-npm \
             --output packed
