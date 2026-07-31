@@ -153,6 +153,7 @@ jobs:
             --output packed
           cp scoped-npm/scoped-npm-manifest.json packed/
           cp scripts/npmInstallCanary.mjs packed/
+          cp scripts/verifyChecksumManifest.mjs packed/
           (
             cd packed
             find . -maxdepth 1 -type f ! -name WORKFLOW-SHA256SUMS.txt -printf '%f\0' |
@@ -205,10 +206,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          (
-            cd packed
-            sha256sum --check WORKFLOW-SHA256SUMS.txt
-          )
+          node packed/verifyChecksumManifest.mjs \
+            --directory packed \
+            --manifest WORKFLOW-SHA256SUMS.txt
           ROOT_TARBALL="$(jq -r \
             '.packages[] | select(.name == "@sgtslummy/agents-council") | .filename' \
             packed/npm-pack-manifest.json)"
@@ -248,10 +248,9 @@ jobs:
         run: |
           npm install --global "npm@${NPM_CLI_VERSION}"
           test "$(npm --version)" = "${NPM_CLI_VERSION}"
-          (
-            cd packed
-            sha256sum --check WORKFLOW-SHA256SUMS.txt
-          )
+          node packed/verifyChecksumManifest.mjs \
+            --directory packed \
+            --manifest WORKFLOW-SHA256SUMS.txt
       - name: Require an existing package for staged publishing
         if: ${{ inputs.mode == 'stage' }}
         shell: bash

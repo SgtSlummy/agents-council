@@ -9,6 +9,7 @@ import path from "node:path";
 import { PLATFORM_PACKAGES, prepareScopedNpmPackages } from "./prepareScopedNpmPackages.mjs";
 import { normalizeNpmPackResult, packScopedNpmPackages } from "./packScopedNpmPackages.mjs";
 import { prepareNpmBootstrapPackages } from "./prepareNpmBootstrapPackages.mjs";
+import { verifyChecksumManifest } from "./verifyChecksumManifest.mjs";
 
 const tempDirectories = [];
 
@@ -108,6 +109,21 @@ test("accepts npm 10 array and npm 12 keyed pack JSON without weakening identity
       ),
     /Unexpected npm pack result/,
   );
+});
+
+test("verifies transport checksums without platform-specific shell tools", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "council-checksums-"));
+  tempDirectories.push(directory);
+  const payload = "verified payload";
+  const sha256 = createHash("sha256").update(payload).digest("hex");
+  await writeFile(path.join(directory, "payload.tgz"), payload, "utf8");
+  await writeFile(path.join(directory, "WORKFLOW-SHA256SUMS.txt"), `${sha256}  payload.tgz\n`, "utf8");
+
+  assert.equal(await verifyChecksumManifest({ directory }), 1);
+  await writeFile(path.join(directory, "payload.tgz"), "tampered", "utf8");
+  await assert.rejects(() => verifyChecksumManifest({ directory }), /Checksum mismatch/);
+  await writeFile(path.join(directory, "WORKFLOW-SHA256SUMS.txt"), `${sha256}  ../payload.tgz\n`, "utf8");
+  await assert.rejects(() => verifyChecksumManifest({ directory }), /Unsafe checksum filename/);
 });
 
 test("fails closed on version mismatch and requires explicit output replacement", async () => {
