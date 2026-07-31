@@ -3,7 +3,7 @@ id: TASK-26.7
 title: >-
   Migrate CI and npm packaging to Electrobun desktop+CLI artifacts across
   platforms
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-02-21 21:11'
 updated_date: '2026-07-31 07:47'
@@ -19,8 +19,11 @@ dependencies:
 references:
   - .github/workflows/ci.yml
   - .github/workflows/release.yml
+  - .github/workflows/npm-release.yml
   - scripts/cli.cjs
   - scripts/resolveBinary.cjs
+  - scripts/prepareScopedNpmPackages.mjs
+  - scripts/packScopedNpmPackages.mjs
   - package.json
 documentation:
   - docs/electrobun/guides/bundling-and-distribution.md
@@ -28,6 +31,7 @@ documentation:
   - DEVELOPMENT.md
   - README.md
   - docs/council.md
+  - docs/npm-scoped-release.md
 parent_task_id: TASK-26
 priority: high
 ---
@@ -44,8 +48,8 @@ Update build and release automation so Electrobun-generated binaries/artifacts a
 - [ ] #2 Release workflow publishes a single user-facing npm package plus platform optional dependency packages for binaries/artifacts.
 - [ ] #3 Install-sanity workflow verifies terminal CLI behavior (`--help`, `--version`, `mcp`) from published packages on all supported OS runners.
 - [x] #4 Release artifacts include desktop-launchable binaries/installers appropriate for each platform.
-- [ ] #5 Packaging and release documentation reflects the new Electrobun-based distribution model.
-- [ ] #6 Developer and release documentation is updated in the same task (`DEVELOPMENT.md` plus Electrobun packaging docs) to reflect the implemented desktop+CLI distribution workflow and cross-platform expectations.
+- [x] #5 Packaging and release documentation reflects the new Electrobun-based distribution model.
+- [x] #6 Developer and release documentation is updated in the same task (`DEVELOPMENT.md` plus Electrobun packaging docs) to reflect the implemented desktop+CLI distribution workflow and cross-platform expectations.
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -60,4 +64,15 @@ Update build and release automation so Electrobun-generated binaries/artifacts a
 Post-launch audit: current main satisfies cross-platform Electrobun artifact build/validation and publishes desktop-launchable GitHub release assets. The approved Occult v1 launch intentionally excluded npm publication, and the hardened v0.5.2 release workflow therefore has no npm publish or registry install-sanity jobs. Acceptance criteria 2, 3, 5, and 6 remain open. Resuming them requires an explicit public npm distribution decision plus trusted-publisher authorization for the root and five platform package names; no registry write was attempted.
 
 Live npm registry verification on 2026-07-31 found the root package and all five unscoped platform package names at version 0.4.0 under the upstream MrLesk maintainer/repository, not this fork. No fork publication authority is confirmed. Safe completion therefore requires either upstream authorization and trusted-publisher configuration for those exact names, or an explicitly approved fork-owned scoped namespace with corresponding acceptance-contract changes.
+
+Implementation resumed on a dedicated branch using the fork-owned `@sgtslummy`
+namespace. The repository source package is now private and no longer installs
+the upstream unscoped optional dependencies. A manual workflow verifies the
+signed GitHub release, assembles six scoped packages, runs dry-run/native
+canaries, and enforces platform-first OIDC publication through
+`npm-production`. Documentation and inert bootstrap packages define the
+unavoidable first ownership action without placing executable code on the
+default tag. Criteria 2 and 3 remain open until namespace ownership, six
+trusted-publisher records, public registry integrity, and all native install
+canaries are proven.
 <!-- SECTION:NOTES:END -->

@@ -16,11 +16,12 @@ Local development:
 bun install
 ```
 
-Global install (if published):
-
-```bash
-npm install -g agents-council
-```
+Production installation uses the verified files on
+[GitHub Releases](https://github.com/SgtSlummy/agents-council/releases).
+The fork-owned scoped npm channel is documented in
+[`npm-scoped-release.md`](npm-scoped-release.md) and must not be advertised
+until its public registry canary passes. Never install this fork from the
+upstream unscoped npm name.
 
 ## Build
 
@@ -40,20 +41,20 @@ This produces an `artifacts/` folder with files prefixed `stable-<platform>-<arc
 
 ## Packaging model
 
-- Root package: `agents-council` (single user-facing npm package).
+- Root package: `@sgtslummy/agents-council` (single user-facing npm package).
 - Optional platform packages:
-  - `agents-council-linux-x64`
-  - `agents-council-linux-arm64`
-  - `agents-council-darwin-x64`
-  - `agents-council-darwin-arm64`
-  - `agents-council-windows-x64`
+  - `@sgtslummy/agents-council-linux-x64`
+  - `@sgtslummy/agents-council-linux-arm64`
+  - `@sgtslummy/agents-council-darwin-x64`
+  - `@sgtslummy/agents-council-darwin-arm64`
+  - `@sgtslummy/agents-council-windows-x64`
 
 Each optional package contains:
 
 - `council` / `council.exe` CLI binary for terminal usage.
 - `desktop-artifacts/*` Electrobun installer/update artifacts for that platform.
 
-Install-sanity in release CI validates published package behavior for:
+Tarball and public-registry canaries validate package behavior for:
 
 - `council --version`
 - `council --help`

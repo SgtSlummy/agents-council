@@ -79,7 +79,7 @@ council mcp    # terminal MCP server mode
 
 ### 3. Distribution Model
 
-This fork publishes verified GitHub bundles for:
+This fork publishes verified GitHub bundles with these release-asset identities:
 
 - `agents-council-linux-x64`
 - `agents-council-linux-arm64`
@@ -93,8 +93,13 @@ Each platform bundle ships:
 - Electrobun desktop artifacts in `desktop-artifacts/` for native installer/update distribution.
 
 Each release also includes an Occult compatibility manifest, SHA-256 checksums,
-and a Sigstore bundle for the complete release checksum manifest. This fork is
-not published as the upstream unscoped npm package.
+and a Sigstore bundle for the complete release checksum manifest.
+
+An optional fork-owned npm channel is prepared under
+`@sgtslummy/agents-council`, with exact-version scoped platform dependencies.
+It is not advertised as installable until its protected registry canary passes.
+See the [scoped npm release runbook](docs/npm-scoped-release.md). This fork
+never publishes the upstream unscoped npm names.
 
 ---
 

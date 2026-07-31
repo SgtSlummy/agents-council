@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
 const { spawn } = require("node:child_process");
+const { getPackageName } = require("./resolveBinary.cjs");
 
 const platformPackages = [
-  "agents-council-linux-x64",
-  "agents-council-linux-arm64",
-  "agents-council-darwin-x64",
-  "agents-council-darwin-arm64",
-  "agents-council-windows-x64",
+  getPackageName("linux", "x64"),
+  getPackageName("linux", "arm64"),
+  getPackageName("darwin", "x64"),
+  getPackageName("darwin", "arm64"),
+  getPackageName("win32", "x64"),
 ];
 
 const packageManager = process.env.npm_config_user_agent?.split("/")[0] || "npm";

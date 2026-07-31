@@ -1,0 +1,384 @@
+name: Verify or publish scoped npm packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Signed GitHub release tag used as the binary source
+        required: true
+        default: v0.5.2
+        type: string
+      mode:
+        description: Verify only, stage for 2FA approval, or publish directly
+        required: true
+        default: verify-only
+        type: choice
+        options:
+          - verify-only
+          - canary
+          - stage
+          - publish
+      confirm:
+        description: "For writes: <mode>:@sgtslummy/agents-council@<version>"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scoped-npm-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+env:
+  NPM_CLI_VERSION: 12.0.2
+
+jobs:
+  prepare:
+    name: Verify signed release and pack scoped npm artifacts
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.request.outputs.version }}
+      tag: ${{ steps.request.outputs.tag }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+      - name: Pin npm CLI
+        run: |
+          npm install --global "npm@${NPM_CLI_VERSION}"
+          test "$(npm --version)" = "${NPM_CLI_VERSION}"
+      - name: Validate dispatch request
+        id: request
+        env:
+          INPUT_CONFIRM: ${{ inputs.confirm }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="$INPUT_TAG"
+          [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$ ]]
+          VERSION="${TAG#v}"
+          SOURCE_VERSION="$(node -p "require('./package.json').version")"
+          test "$SOURCE_VERSION" = "$VERSION"
+          if [[ "$INPUT_MODE" == "stage" || "$INPUT_MODE" == "publish" ]]; then
+            EXPECTED="${INPUT_MODE}:@sgtslummy/agents-council@${VERSION}"
+            if [[ "$INPUT_CONFIRM" != "$EXPECTED" ]]; then
+              echo "Write confirmation mismatch. Expected: $EXPECTED" >&2
+              exit 1
+            fi
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Run scoped packaging unit tests
+        run: node --test scripts/prepareScopedNpmPackages.test.mjs
+      - name: Download immutable release inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.request.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release-download
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,isPrerelease,tagName > release-download/release.json
+          jq -e --arg tag "$TAG" \
+            '.tagName == $tag and .isDraft == false and .isPrerelease == false' \
+            release-download/release.json > /dev/null
+          for asset in \
+            RELEASE-SHA256SUMS.txt \
+            RELEASE-SHA256SUMS.txt.sigstore.json \
+            agents-council-linux-x64.tar.gz \
+            agents-council-linux-arm64.tar.gz \
+            agents-council-darwin-x64.tar.gz \
+            agents-council-darwin-arm64.tar.gz \
+            agents-council-windows-x64.tar.gz
+          do
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --pattern "$asset" --dir release-download
+          done
+          rm release-download/release.json
+      - name: Verify Sigstore identity and release checksums
+        env:
+          TAG: ${{ steps.request.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cosign verify-blob release-download/RELEASE-SHA256SUMS.txt \
+            --bundle release-download/RELEASE-SHA256SUMS.txt.sigstore.json \
+            --certificate-identity \
+              "https://github.com/SgtSlummy/agents-council/.github/workflows/release.yml@refs/tags/${TAG}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          for archive in release-download/agents-council-*.tar.gz; do
+            filename="$(basename "$archive")"
+            grep -F "  ${filename}" release-download/RELEASE-SHA256SUMS.txt > /dev/null
+          done
+          (
+            cd release-download
+            sha256sum --check RELEASE-SHA256SUMS.txt --ignore-missing
+          )
+      - name: Extract verified platform bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release-root
+          for archive in release-download/agents-council-*.tar.gz; do
+            package="$(basename "$archive" .tar.gz)"
+            python scripts/extractVerifiedReleaseArchive.py \
+              --archive "$archive" \
+              --destination "release-root/$package"
+          done
+      - name: Assemble and dry-run all scoped packages
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/prepareScopedNpmPackages.mjs \
+            --release-root release-root \
+            --output scoped-npm \
+            --version "$VERSION"
+          while IFS= read -r directory; do
+            npm publish --dry-run --ignore-scripts "./scoped-npm/${directory}" > /dev/null
+          done < <(jq -r '.packages[].directory' scoped-npm/scoped-npm-manifest.json)
+          node scripts/packScopedNpmPackages.mjs \
+            --assembly-root scoped-npm \
+            --output packed
+          cp scoped-npm/scoped-npm-manifest.json packed/
+          cp scripts/npmInstallCanary.mjs packed/
+          (
+            cd packed
+            find . -maxdepth 1 -type f ! -name WORKFLOW-SHA256SUMS.txt -printf '%f\0' |
+              sort -z |
+              xargs -0 sha256sum > WORKFLOW-SHA256SUMS.txt
+          )
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: scoped-npm-${{ steps.request.outputs.version }}
+          path: packed
+          if-no-files-found: error
+          retention-days: 14
+
+  package-canary:
+    name: Package canary (${{ matrix.package }})
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            package: "@sgtslummy/agents-council-linux-x64"
+            command: bin/council
+          - runner: ubuntu-24.04-arm
+            package: "@sgtslummy/agents-council-linux-arm64"
+            command: bin/council
+          - runner: macos-15-intel
+            package: "@sgtslummy/agents-council-darwin-x64"
+            command: bin/council
+          - runner: macos-14
+            package: "@sgtslummy/agents-council-darwin-arm64"
+            command: bin/council
+          - runner: windows-latest
+            package: "@sgtslummy/agents-council-windows-x64"
+            command: council.cmd
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: scoped-npm-${{ needs.prepare.outputs.version }}
+          path: packed
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - name: Verify and install packed tarballs
+        env:
+          PLATFORM_PACKAGE: ${{ matrix.package }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd packed
+            sha256sum --check WORKFLOW-SHA256SUMS.txt
+          )
+          ROOT_TARBALL="$(jq -r \
+            '.packages[] | select(.name == "@sgtslummy/agents-council") | .filename' \
+            packed/npm-pack-manifest.json)"
+          PLATFORM_TARBALL="$(jq -r --arg package "$PLATFORM_PACKAGE" \
+            '.packages[] | select(.name == $package) | .filename' \
+            packed/npm-pack-manifest.json)"
+          test -f "packed/$ROOT_TARBALL"
+          test -f "packed/$PLATFORM_TARBALL"
+          PREFIX="${RUNNER_TEMP}/agents-council-npm-canary"
+          npm install --global --prefix "$PREFIX" \
+            "./packed/$PLATFORM_TARBALL" --ignore-scripts --no-audit --no-fund
+          npm install --global --prefix "$PREFIX" \
+            "./packed/$ROOT_TARBALL" --omit=optional --ignore-scripts --no-audit --no-fund
+          node packed/npmInstallCanary.mjs \
+            --expected-version "$VERSION" \
+            --command "${PREFIX}/${{ matrix.command }}"
+
+  publish:
+    name: ${{ inputs.mode == 'stage' && 'Stage' || 'Publish' }} scoped packages
+    if: ${{ inputs.mode == 'stage' || inputs.mode == 'publish' }}
+    needs: [prepare, package-canary]
+    runs-on: ubuntu-latest
+    environment: npm-production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: scoped-npm-${{ needs.prepare.outputs.version }}
+          path: packed
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - name: Pin npm CLI and verify transport checksums
+        run: |
+          npm install --global "npm@${NPM_CLI_VERSION}"
+          test "$(npm --version)" = "${NPM_CLI_VERSION}"
+          (
+            cd packed
+            sha256sum --check WORKFLOW-SHA256SUMS.txt
+          )
+      - name: Require an existing package for staged publishing
+        if: ${{ inputs.mode == 'stage' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r package; do
+            if ! npm view "$package" name > /dev/null 2>&1; then
+              echo "$package does not exist. Complete the documented one-time bootstrap first." >&2
+              exit 1
+            fi
+          done < <(jq -r '.publish_order[]' packed/npm-pack-manifest.json)
+      - name: Publish platform packages before the root
+        env:
+          MODE: ${{ inputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          registry_integrity() {
+            npm view "$1" dist.integrity --json 2>/dev/null |
+              jq -r 'if type == "string" then . else empty end' || true
+          }
+
+          publish_one() {
+            local name="$1"
+            local version="$2"
+            local filename="$3"
+            local expected_integrity="$4"
+            local spec="${name}@${version}"
+            local tarball="./packed/${filename}"
+
+            if [[ "$MODE" == "stage" ]]; then
+              npm stage publish "$tarball" --access public
+              return
+            fi
+
+            local current_integrity
+            current_integrity="$(registry_integrity "$spec")"
+            if [[ -n "$current_integrity" ]]; then
+              test "$current_integrity" = "$expected_integrity"
+              echo "$spec already matches the prepared tarball; skipping."
+              return
+            fi
+
+            npm publish "$tarball" --access public
+            for attempt in {1..30}; do
+              current_integrity="$(registry_integrity "$spec")"
+              if [[ "$current_integrity" == "$expected_integrity" ]]; then
+                return
+              fi
+              sleep 10
+            done
+            echo "Registry integrity did not converge for $spec" >&2
+            exit 1
+          }
+
+          while IFS=$'\t' read -r name version filename integrity; do
+            publish_one "$name" "$version" "$filename" "$integrity"
+          done < <(
+            jq -r '.packages[] | select(.kind == "platform") |
+              [.name, .version, .filename, .integrity] | @tsv' \
+              packed/npm-pack-manifest.json
+          )
+
+          while IFS=$'\t' read -r name version filename integrity; do
+            publish_one "$name" "$version" "$filename" "$integrity"
+          done < <(
+            jq -r '.packages[] | select(.kind == "root") |
+              [.name, .version, .filename, .integrity] | @tsv' \
+              packed/npm-pack-manifest.json
+          )
+      - name: Record staged approval requirement
+        if: ${{ inputs.mode == 'stage' }}
+        run: |
+          echo "All six packages were staged. A package maintainer must review and approve them with 2FA." \
+            >> "$GITHUB_STEP_SUMMARY"
+
+  registry-canary:
+    name: Registry canary (${{ matrix.package }})
+    if: >-
+      ${{ always() &&
+          (inputs.mode == 'publish' || inputs.mode == 'canary') &&
+          needs.prepare.result == 'success' &&
+          needs.package-canary.result == 'success' &&
+          (inputs.mode == 'canary' || needs.publish.result == 'success') }}
+    needs: [prepare, package-canary, publish]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            package: "@sgtslummy/agents-council-linux-x64"
+            command: bin/council
+          - runner: ubuntu-24.04-arm
+            package: "@sgtslummy/agents-council-linux-arm64"
+            command: bin/council
+          - runner: macos-15-intel
+            package: "@sgtslummy/agents-council-darwin-x64"
+            command: bin/council
+          - runner: macos-14
+            package: "@sgtslummy/agents-council-darwin-arm64"
+            command: bin/council
+          - runner: windows-latest
+            package: "@sgtslummy/agents-council-windows-x64"
+            command: council.cmd
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: scoped-npm-${{ needs.prepare.outputs.version }}
+          path: packed
+      - name: Install exact public package and run terminal canary
+        env:
+          PLATFORM_PACKAGE: ${{ matrix.package }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREFIX="${RUNNER_TEMP}/agents-council-registry-canary"
+          npm install --global --prefix "$PREFIX" \
+            "@sgtslummy/agents-council@${VERSION}" --ignore-scripts --no-audit --no-fund
+          npm list --global --prefix "$PREFIX" \
+            "${PLATFORM_PACKAGE}@${VERSION}" > /dev/null
+          node packed/npmInstallCanary.mjs \
+            --expected-version "$VERSION" \
+            --command "${PREFIX}/${{ matrix.command }}"

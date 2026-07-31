@@ -36,7 +36,7 @@ Agents Council uses native runners per target package in release CI:
 
 - `ubuntu-latest` -> `linux-x64` (`agents-council-linux-x64`)
 - `ubuntu-24.04-arm` -> `linux-arm64` (`agents-council-linux-arm64`)
-- `macos-13` -> `macos-x64` (`agents-council-darwin-x64`)
+- `macos-15-intel` -> `macos-x64` (`agents-council-darwin-x64`)
 - `macos-14` -> `macos-arm64` (`agents-council-darwin-arm64`)
 - `windows-latest` -> `win-x64` (`agents-council-windows-x64`)
 
@@ -46,6 +46,10 @@ For each runner, the pipeline performs both:
 - `electrobun build --env=stable` for desktop installers/update artifacts.
 
 This avoids cross-compiling Electrobun desktop artifacts and keeps package payloads native to the target OS/arch.
+
+The names above are immutable GitHub release-asset identities. Optional npm
+mirrors add the fork-owned `@sgtslummy/` scope and are assembled only after the
+signed release is verified.
 
 ## Platform-Specific Issues
 

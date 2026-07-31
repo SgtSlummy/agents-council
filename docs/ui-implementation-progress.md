@@ -34,7 +34,8 @@ Use this file to decide where new UI features should be implemented and what mus
 
 ## Immediate Alignment Priorities
 
-1. Keep bridge/API compatibility stable while TASK-26.7 finalizes packaging/release automation for desktop artifacts.
+1. Keep bridge/API compatibility stable while TASK-26.7 completes its
+   one-time scoped npm namespace bootstrap and public registry canaries.
 2. Expand optional motion polish only if runtime performance/packaging constraints remain unaffected.
 
 ## Change Control

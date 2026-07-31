@@ -30,33 +30,45 @@
 
 ## Agents Council release workflow
 
-This repository uses Electrobun artifacts as release payloads and keeps a single npm entry package.
+This repository uses signed GitHub release bundles as the canonical Electrobun
+payload and optionally keeps a single fork-owned npm entry package.
 
 Distribution contract:
 
-- Root package: `agents-council`
+- Root package: `@sgtslummy/agents-council`
 - Optional platform packages:
-  - `agents-council-linux-x64`
-  - `agents-council-linux-arm64`
-  - `agents-council-darwin-x64`
-  - `agents-council-darwin-arm64`
-  - `agents-council-windows-x64`
+  - `@sgtslummy/agents-council-linux-x64`
+  - `@sgtslummy/agents-council-linux-arm64`
+  - `@sgtslummy/agents-council-darwin-x64`
+  - `@sgtslummy/agents-council-darwin-arm64`
+  - `@sgtslummy/agents-council-windows-x64`
 
 Per-platform package contents:
 
 - `council` or `council.exe` (CLI binary used by `scripts/resolveBinary.cjs`)
 - `desktop-artifacts/*` (Electrobun stable installer/update artifacts)
 
-Release workflow behavior (`.github/workflows/release.yml`):
+GitHub release behavior (`.github/workflows/release.yml`):
 
 1. Build host-native CLI binary (`bun build --compile`) and Electrobun stable artifacts (`electrobun build --env=stable`) on each platform runner.
-2. Publish root npm package with pinned optional dependency versions for the same tag.
-3. Publish platform optional packages with both CLI binary and desktop artifacts.
-4. Run install-sanity on macOS, Windows, and Linux and assert:
+2. Generate the Occult manifest and checksums inside each platform bundle.
+3. Sign the complete release checksum manifest with the exact tag workflow identity.
+4. Publish immutable GitHub release assets.
+
+Optional npm behavior (`.github/workflows/npm-release.yml`):
+
+1. Verify the GitHub release signature, checksums, archive safety, and manifests.
+2. Assemble and dry-run the five scoped platform packages plus the scoped root.
+3. Run native package canaries on all supported targets and assert:
    - `council --version`
    - `council --help`
    - `council mcp` startup signal
-5. Upload `desktop-artifacts/*` files to the GitHub release.
+4. Stage or publish the platform packages first and root package last using npm
+   trusted publishing.
+5. Run public registry canaries after direct publication or staged approval.
+
+See `../../npm-scoped-release.md` for the one-time namespace bootstrap and
+protected operator sequence.
 
 Versioning note:
 

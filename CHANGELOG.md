@@ -2,6 +2,25 @@
 
 All notable changes to Agents Council are documented here.
 
+## Unreleased
+
+### Added
+
+- Added fork-owned scoped npm assembly for one root launcher and five native
+  platform packages sourced only from a verified signed GitHub release.
+- Added tokenless trusted-publishing gates, platform-first ordering, dry-run
+  packaging, native tarball canaries, and public registry canaries.
+- Added inert namespace-bootstrap packages so the first human-authorized npm
+  action can establish package ownership without publishing executable code.
+
+### Security
+
+- Marked the repository source package private and removed upstream unscoped
+  optional dependencies to prevent accidental fork publication or namespace
+  confusion.
+- npm writes require the `npm-production` environment, OIDC, and an exact typed
+  confirmation. The workflow contains no npm token path.
+
 ## 0.5.2 - 2026-07-30
 
 ### Added
