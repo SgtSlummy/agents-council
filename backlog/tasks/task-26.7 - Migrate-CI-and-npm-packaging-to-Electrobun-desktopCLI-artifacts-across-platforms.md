@@ -6,7 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-02-21 21:11'
-updated_date: '2026-07-31 07:45'
+updated_date: '2026-07-31 07:47'
 labels:
   - ci
   - release
@@ -58,4 +58,6 @@ Update build and release automation so Electrobun-generated binaries/artifacts a
 
 <!-- SECTION:NOTES:BEGIN -->
 Post-launch audit: current main satisfies cross-platform Electrobun artifact build/validation and publishes desktop-launchable GitHub release assets. The approved Occult v1 launch intentionally excluded npm publication, and the hardened v0.5.2 release workflow therefore has no npm publish or registry install-sanity jobs. Acceptance criteria 2, 3, 5, and 6 remain open. Resuming them requires an explicit public npm distribution decision plus trusted-publisher authorization for the root and five platform package names; no registry write was attempted.
+
+Live npm registry verification on 2026-07-31 found the root package and all five unscoped platform package names at version 0.4.0 under the upstream MrLesk maintainer/repository, not this fork. No fork publication authority is confirmed. Safe completion therefore requires either upstream authorization and trusted-publisher configuration for those exact names, or an explicitly approved fork-owned scoped namespace with corresponding acceptance-contract changes.
 <!-- SECTION:NOTES:END -->
