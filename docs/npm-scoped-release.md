@@ -38,7 +38,9 @@ The repository source package is marked `private`. Only
 - `verify-only`: verifies the signed GitHub release, assembles all six
   packages, runs `npm publish --dry-run`, and runs native tarball canaries.
 - `canary`: repeats verification and tests the exact packages already public
-  on npm without writing to the registry.
+  on npm without writing to the registry. Reassembly uses a local package
+  dry-run when the exact immutable version is already public, avoiding a false
+  version-collision failure while retaining package validation.
 - `stage`: stages all platform packages first and the root last. A maintainer
   must review and approve every staged package with 2FA.
 - `publish`: directly publishes platform packages first and the root last,
