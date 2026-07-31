@@ -4,6 +4,22 @@ All notable changes to Agents Council are documented here.
 
 ## Unreleased
 
+## 0.5.4 - 2026-07-31
+
+### Fixed
+
+- Preserved repository LF line endings before Windows release checkouts so the
+  release formatter validates the same source bytes as protected CI.
+- Increased the deterministic npm packaging test timeout for slower hosted
+  Windows release runners without weakening its assertions or cleanup.
+
+### Compatibility
+
+- Tarot Router branding, runtime contract `1.0.0`, Council state schema 3,
+  package names, CLI aliases, and signed asset names are unchanged.
+- The failed `v0.5.3` tag remains immutable and unpublished; `v0.5.4` is the
+  replacement release candidate.
+
 ## 0.5.3 - 2026-07-31
 
 ### Added
