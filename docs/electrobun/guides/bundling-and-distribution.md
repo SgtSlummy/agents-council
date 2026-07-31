@@ -46,7 +46,11 @@ Distribution contract:
 Per-platform package contents:
 
 - `council` or `council.exe` (CLI binary used by `scripts/resolveBinary.cjs`)
-- `desktop-artifacts/*` (Electrobun stable installer/update artifacts)
+- Occult release manifest and checksums for the source bundle
+
+Electrobun stable installer/update artifacts remain in the signed GitHub
+release. They are intentionally excluded from npm packages to stay below npm
+registry request-size limits.
 
 GitHub release behavior (`.github/workflows/release.yml`):
 

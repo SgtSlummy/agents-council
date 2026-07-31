@@ -123,7 +123,6 @@ async function preparePlatformPackage({ output, releaseRoot, sourceRoot, version
   if (platform.os !== "win32") {
     await chmod(path.join(packageRoot, platform.binary), 0o755);
   }
-  await copyDirectory(path.join(bundleRoot, "desktop-artifacts"), path.join(packageRoot, "desktop-artifacts"));
   await copyFile(path.join(bundleRoot, RELEASE_MANIFEST), path.join(packageRoot, RELEASE_MANIFEST));
   await copyFile(path.join(bundleRoot, RELEASE_CHECKSUMS), path.join(packageRoot, RELEASE_CHECKSUMS));
   await copyFile(path.join(sourceRoot, "LICENSE"), path.join(packageRoot, "LICENSE"));
@@ -136,10 +135,10 @@ async function preparePlatformPackage({ output, releaseRoot, sourceRoot, version
   await writeJson(path.join(packageRoot, "package.json"), {
     name: packageName,
     version,
-    description: `Native Agents Council CLI and Electrobun artifacts for ${platform.os}-${platform.cpu}.`,
+    description: `Native Agents Council CLI for ${platform.os}-${platform.cpu}.`,
     os: [platform.os],
     cpu: [platform.cpu],
-    files: [platform.binary, "desktop-artifacts/", RELEASE_MANIFEST, RELEASE_CHECKSUMS, "README.md", "LICENSE"],
+    files: [platform.binary, RELEASE_MANIFEST, RELEASE_CHECKSUMS, "README.md", "LICENSE"],
     occult: {
       contractVersions: ["1.0.0"],
       featureGate: "OCCULT_ENABLED",
@@ -332,26 +331,6 @@ async function assertRegularTree(root) {
   }
 }
 
-async function copyDirectory(source, destination) {
-  await assertDirectory(source, "Source directory");
-  await mkdir(destination, { recursive: true });
-  for (const entry of await readdir(source, { withFileTypes: true })) {
-    const sourcePath = path.join(source, entry.name);
-    const destinationPath = path.join(destination, entry.name);
-    const entryStat = await lstat(sourcePath);
-    if (entryStat.isSymbolicLink()) {
-      throw new Error(`Refusing to copy symbolic link: ${sourcePath}`);
-    }
-    if (entryStat.isDirectory()) {
-      await copyDirectory(sourcePath, destinationPath);
-    } else if (entryStat.isFile()) {
-      await copyFile(sourcePath, destinationPath);
-    } else {
-      throw new Error(`Unsupported entry type: ${sourcePath}`);
-    }
-  }
-}
-
 async function hashTree(root) {
   const files = await listFiles(root);
   const entries = [];
@@ -450,8 +429,10 @@ function platformReadme(packageName, version, releaseName) {
 Native Agents Council payload for \`${releaseName}\`, version \`${version}\`.
 
 This package is an optional dependency of \`${packageScope}/agents-council\`.
-Its CLI and Electrobun artifacts are assembled only from the signed GitHub
-release at https://github.com/SgtSlummy/agents-council/releases/tag/v${version}.
+Its CLI is assembled only from the signed GitHub release at
+https://github.com/SgtSlummy/agents-council/releases/tag/v${version}.
+Electrobun desktop installers remain signed GitHub release assets and are not
+duplicated in the npm package.
 `;
 }
 

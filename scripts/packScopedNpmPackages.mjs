@@ -10,6 +10,7 @@ import { pathToFileURL } from "node:url";
 const execFile = promisify(execFileCallback);
 const ASSEMBLY_MANIFEST = "scoped-npm-manifest.json";
 const PACK_MANIFEST = "npm-pack-manifest.json";
+export const NPM_SAFE_TARBALL_BYTES = 290 * 1024 * 1024;
 
 export async function packScopedNpmPackages(options) {
   const assemblyRoot = path.resolve(options.assemblyRoot);
@@ -49,12 +50,14 @@ export async function packScopedNpmPackages(options) {
     }
     validatePackedFiles(packageName, packed.files);
     const tarball = path.join(output, packed.filename);
+    const bytes = (await lstat(tarball)).size;
+    assertPublishableTarballSize(packageName, bytes);
     packages.push({
       kind: entry.kind,
       name: packageName,
       version: entry.version,
       filename: packed.filename,
-      bytes: (await lstat(tarball)).size,
+      bytes,
       sha256: await sha256File(tarball),
       shasum: packed.shasum,
       integrity: packed.integrity,
@@ -73,6 +76,15 @@ export async function packScopedNpmPackages(options) {
   checksumLines.push(`${manifestHash}  ${PACK_MANIFEST}`);
   await writeFile(path.join(output, "SHA256SUMS.txt"), `${checksumLines.join("\n")}\n`, "utf8");
   return manifest;
+}
+
+export function assertPublishableTarballSize(packageName, bytes) {
+  if (!Number.isSafeInteger(bytes) || bytes <= 0) {
+    throw new Error(`Invalid npm tarball size for ${packageName}: ${bytes}`);
+  }
+  if (bytes > NPM_SAFE_TARBALL_BYTES) {
+    throw new Error(`npm tarball for ${packageName} is ${bytes} bytes; safe limit is ${NPM_SAFE_TARBALL_BYTES} bytes.`);
+  }
 }
 
 export function normalizeNpmPackResult(result, packageName) {
