@@ -26,7 +26,7 @@ type ReadingOptions = SharedOptions & {
 };
 
 export function registerOccultCliCommands(program: Command): void {
-  const occult = program.command("occult").description("Manage feature-gated Occult Tarot readings.");
+  const occult = program.command("tarot").alias("occult").description("Manage feature-gated Tarot Router readings.");
 
   occult
     .command("create")
@@ -34,7 +34,7 @@ export function registerOccultCliCommands(program: Command): void {
     .requiredOption("--session-id <id>", "Target Council session")
     .requiredOption("--agent-name <name>", "Existing participant name in the targeted session")
     .requiredOption("--plan <path>", "Path to a versioned JSON spread plan")
-    .option("--contract-version <version>", "Occult contract version", OCCULT_CONTRACT_VERSION)
+    .option("--contract-version <version>", "Tarot Router v1 contract version", OCCULT_CONTRACT_VERSION)
     .option("--json", "Print machine-readable JSON")
     .action(async (options: PlanOptions) => {
       await runWithInterrupt(async (signal) => {
@@ -54,9 +54,9 @@ export function registerOccultCliCommands(program: Command): void {
     .description("Inspect sanitized reading state and optionally request only newer events.")
     .requiredOption("--session-id <id>", "Target Council session")
     .requiredOption("--agent-name <name>", "Existing participant name in the targeted session")
-    .requiredOption("--reading-id <id>", "Occult reading id")
+    .requiredOption("--reading-id <id>", "Tarot Router reading id")
     .option("--after-sequence <number>", "Return events after this sequence")
-    .option("--contract-version <version>", "Occult contract version", OCCULT_CONTRACT_VERSION)
+    .option("--contract-version <version>", "Tarot Router v1 contract version", OCCULT_CONTRACT_VERSION)
     .option("--json", "Print machine-readable JSON")
     .action(async (options: ReadingOptions) => {
       const reading = await createService().inspect({
@@ -74,8 +74,8 @@ export function registerOccultCliCommands(program: Command): void {
     .description("Cancel a running reading.")
     .requiredOption("--session-id <id>", "Target Council session")
     .requiredOption("--agent-name <name>", "Existing participant name in the targeted session")
-    .requiredOption("--reading-id <id>", "Occult reading id")
-    .option("--contract-version <version>", "Occult contract version", OCCULT_CONTRACT_VERSION)
+    .requiredOption("--reading-id <id>", "Tarot Router reading id")
+    .option("--contract-version <version>", "Tarot Router v1 contract version", OCCULT_CONTRACT_VERSION)
     .option("--json", "Print machine-readable JSON")
     .action(async (options: ReadingOptions) => {
       const reading = await createService().cancel({
@@ -92,9 +92,9 @@ export function registerOccultCliCommands(program: Command): void {
     .description("Resume a reading using its original complete JSON spread plan.")
     .requiredOption("--session-id <id>", "Target Council session")
     .requiredOption("--agent-name <name>", "Existing participant name in the targeted session")
-    .requiredOption("--reading-id <id>", "Occult reading id")
+    .requiredOption("--reading-id <id>", "Tarot Router reading id")
     .requiredOption("--plan <path>", "Path to the same versioned JSON spread plan")
-    .option("--contract-version <version>", "Occult contract version", OCCULT_CONTRACT_VERSION)
+    .option("--contract-version <version>", "Tarot Router v1 contract version", OCCULT_CONTRACT_VERSION)
     .option("--json", "Print machine-readable JSON")
     .action(async (options: PlanOptions & { readingId: string }) => {
       await runWithInterrupt(async (signal) => {
@@ -117,7 +117,7 @@ async function loadPlan(filePath: string, sessionId: string) {
   try {
     payload = await Bun.file(absolutePath).json();
   } catch {
-    throw new Error(`Unable to read Occult spread plan: ${absolutePath}`);
+    throw new Error(`Unable to read Tarot Router spread plan: ${absolutePath}`);
   }
   const wirePlan = occultSpreadPlanSchema.parse(payload);
   if (wirePlan.session_id !== sessionId) {

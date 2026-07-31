@@ -9,7 +9,7 @@
 Status: <code>Experimental</code>
 </p>
 
-### Occult production spread
+### Tarot Router production spread
 
 Agents Council can coordinate the signed Major Arcana runtime in Hermes. Start
 Hermes locally, then enable the Council bridge:
@@ -18,13 +18,15 @@ Hermes locally, then enable the Council bridge:
 export OCCULT_ENABLED=true
 export OCCULT_HERMES_URL=http://127.0.0.1:8642
 export OCCULT_HERMES_SERVICE_TOKEN=<scoped Hermes token>
-council occult create --session-id <session> --agent-name <participant> --plan examples/occult/production-build.json
+council tarot create --session-id <session> --agent-name <participant> --plan examples/occult/production-build.json
 ```
 
 On Windows `cmd`, use `set` instead of `export`. The bridge never stores or
 returns the service token, provider credentials, prompts, or raw route
-explanations. Occult remains invisible when the feature flag is not exactly
-`true`.
+explanations. Tarot Router remains invisible when the feature flag is not
+exactly `true`.
+
+`council occult` remains a supported v1 compatibility alias.
 
 ---
 
@@ -54,12 +56,12 @@ Inspired by Andrej Karpathy's [LLM Council](https://github.com/karpathy/llm-coun
 The compiled GitHub releases do not require Node.js or Bun. Those runtimes are
 required only for source development or the upstream npm distribution.
 
-### 1. Occult System
+### 1. Tarot Router
 
 Use the
-[Occult local quickstart](https://github.com/SgtSlummy/hermes-agent/blob/main/docs/occult/quickstart.md).
+[Tarot Router local quickstart](https://github.com/SgtSlummy/hermes-agent/blob/main/docs/tarot-router/quickstart.md).
 The verified Hermes installer selects and installs the immutable Agents Council
-release required by that Occult version.
+release required by that Tarot Router version.
 
 ### 2. Desktop App & CLI
 

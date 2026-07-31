@@ -1,9 +1,11 @@
-# Occult Reading Interfaces
+# Tarot Router Reading Interfaces
 
 ## Status and trust boundary
 
-Occult reading execution is additive, versioned at contract `1.0.0`, and disabled
-unless `OCCULT_ENABLED=true` is set. Existing Council CLI, MCP, and Council Hall
+Tarot Router reading execution is additive, versioned at contract `1.0.0`, and
+disabled unless `OCCULT_ENABLED=true` is set. The environment variable, wire
+tools, API paths, and stored fields retain `occult` as a v1 compatibility
+identifier. Existing Council CLI, MCP, and Council Hall
 behavior is unchanged while disabled.
 
 The interface layer exposes sanitized reading state only:
@@ -60,12 +62,14 @@ targeted Council session.
 The named caller must already be a participant in the targeted active session.
 
 ```text
-council occult create --session-id <session> --agent-name <participant> --plan spread.json
-council occult inspect --session-id <session> --agent-name <participant> --reading-id <reading>
-council occult inspect --session-id <session> --agent-name <participant> --reading-id <reading> --after-sequence 12 --json
-council occult cancel --session-id <session> --agent-name <participant> --reading-id <reading>
-council occult resume --session-id <session> --agent-name <participant> --reading-id <reading> --plan spread.json
+council tarot create --session-id <session> --agent-name <participant> --plan spread.json
+council tarot inspect --session-id <session> --agent-name <participant> --reading-id <reading>
+council tarot inspect --session-id <session> --agent-name <participant> --reading-id <reading> --after-sequence 12 --json
+council tarot cancel --session-id <session> --agent-name <participant> --reading-id <reading>
+council tarot resume --session-id <session> --agent-name <participant> --reading-id <reading> --plan spread.json
 ```
+
+`council occult` remains a supported compatibility alias.
 
 Ctrl+C or process termination propagates cancellation to an active create or
 resume call. Resume must use the same full plan and idempotency key; a mismatch
@@ -73,7 +77,8 @@ is rejected instead of creating or attaching to a different reading.
 
 ## MCP tools
 
-The MCP server registers these tools only when Occult is enabled:
+The MCP server registers these v1 compatibility tools only when Tarot Router
+is enabled:
 
 - `occult_create_reading_v1`
 - `occult_get_reading_v1`
@@ -87,8 +92,8 @@ for incremental progress without replaying older events.
 
 ## Council Hall
 
-Council Hall requests the sanitized Occult status for the selected session. An
-Occult panel appears only when the feature is enabled and shows:
+Council Hall requests the sanitized Tarot Router status for the selected
+session. A Tarot Router panel appears only when the feature is enabled and shows:
 
 - spread and reading state
 - Major/Minor Arcana pairing per node
@@ -117,14 +122,14 @@ mismatch. Errors are redacted before storage and display.
 No new state migration is introduced: readings use state schema v3.
 
 To disable the interfaces, remove `OCCULT_ENABLED` or set it to any value other
-than the exact string `true`, then restart Council processes. Occult MCP tools
+than the exact string `true`, then restart Council processes. Tarot Router MCP tools
 and the Council Hall panel disappear; ordinary Council operations remain
 available. Existing readings stay preserved for later inspection after
 re-enabling.
 
 For code rollback, stop active reading creation, back up the Council state file,
-deploy the previous build, and leave Occult disabled. State schema v3 remains
-readable by the prior Occult persistence/scheduler slice; follow
+deploy the previous build, and leave Tarot Router disabled. State schema v3 remains
+readable by the prior Tarot Router persistence/scheduler slice; follow
 `docs/occult-reading-state.md` for backup and restore checks.
 
 ## Verification

@@ -323,13 +323,14 @@ State is stored at:
 ```
 
 State schema version 3 stores ordinary multi-session Council data plus
-feature-gated Occult reading records. Version 1 and version 2 files migrate
+feature-gated Tarot Router reading records. The persisted field names retain
+their v1 `occult` identifiers for compatibility. Version 1 and version 2 files migrate
 without creating readings. See `docs/occult-reading-state.md` for the storage,
 backup, restore, migration, integrity, and rollback contract.
 
 The core Hermes bridge and Tarot spread scheduler build on that state without
 changing the schema. Feature-gated CLI, MCP, and Council Hall interfaces expose
-sanitized execution status when `OCCULT_ENABLED=true`; ordinary Council behavior
+sanitized Tarot Router execution status when `OCCULT_ENABLED=true`; ordinary Council behavior
 is unchanged while disabled. See `docs/occult-interfaces.md` for commands,
 versioned tools, session authorization, UI behavior, and rollback, and
 `docs/occult-hermes-spreads.md` for the underlying execution trust boundary.

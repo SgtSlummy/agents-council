@@ -1,20 +1,20 @@
-# Occult Production Release Guide
+# Tarot Router Production Release Guide
 
 ## Release contract
 
-Agents Council supports Occult contract `1.0.0`. Occult remains fail-closed
-unless `OCCULT_ENABLED=true`. The source package metadata, Electrobun runtime,
-and generated release manifests declare this compatibility.
+Agents Council supports Tarot Router contract `1.0.0`. Tarot Router remains
+fail-closed unless `OCCULT_ENABLED=true`. The v1 feature gate, package metadata,
+and generated release manifests retain the `occult` compatibility identifier.
 
-No state migration is introduced. Occult readings remain part of Council state
+No state migration is introduced. Tarot Router readings remain part of Council state
 schema version 3.
 
 ## Public GitHub installation
 
-The Occult-enabled fork is distributed through
+The Tarot Router-enabled fork is distributed through
 [SgtSlummy/agents-council releases](https://github.com/SgtSlummy/agents-council/releases),
 not the upstream unscoped npm package. End-to-end users should follow the
-[canonical Occult quickstart](https://github.com/SgtSlummy/hermes-agent/blob/main/docs/occult/quickstart.md);
+[canonical Tarot Router quickstart](https://github.com/SgtSlummy/hermes-agent/blob/main/docs/tarot-router/quickstart.md);
 the Hermes installer pins the compatible Council release.
 
 Each release publishes `RELEASE-SHA256SUMS.txt` and its adjacent
