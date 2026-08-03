@@ -1,0 +1,116 @@
+{
+  "session_id": "replace-with-active-session-id",
+  "spread_id": "occult.spread.full-major-arcana",
+  "spread_version": "1.0.0",
+  "idempotency_key": "replace-with-unique-full-major-key",
+  "deck_id": "occult.deck.starter",
+  "routing": {
+    "mode": "local_only",
+    "free_only": true,
+    "local_only": true,
+    "maximum_fallbacks": 0,
+    "maximum_cost_usd": 0
+  },
+  "maximum_parallelism": 4,
+  "nodes": [
+    { "node_id": "fool", "agent_id": "occult.major.fool", "message": "Explore the task from first principles." },
+    { "node_id": "magician", "agent_id": "occult.major.magician", "message": "Turn the task into an executable plan." },
+    {
+      "node_id": "high-priestess",
+      "agent_id": "occult.major.high_priestess",
+      "message": "Find hidden relationships and missing evidence."
+    },
+    { "node_id": "empress", "agent_id": "occult.major.empress", "message": "Propose a clear and creative expression." },
+    {
+      "node_id": "emperor",
+      "agent_id": "occult.major.emperor",
+      "message": "Define structure, governance, and constraints."
+    },
+    {
+      "node_id": "hierophant",
+      "agent_id": "occult.major.hierophant",
+      "message": "Explain the procedure and acceptance criteria."
+    },
+    {
+      "node_id": "lovers",
+      "agent_id": "occult.major.lovers",
+      "message": "Reconcile competing options and dependencies."
+    },
+    {
+      "node_id": "chariot",
+      "agent_id": "occult.major.chariot",
+      "message": "Identify the shortest reliable execution path."
+    },
+    {
+      "node_id": "strength",
+      "agent_id": "occult.major.strength",
+      "message": "Design resilience, retries, and recovery."
+    },
+    { "node_id": "hermit", "agent_id": "occult.major.hermit", "message": "Perform a deliberate independent analysis." },
+    {
+      "node_id": "wheel-of-fortune",
+      "agent_id": "occult.major.wheel_of_fortune",
+      "message": "Evaluate route and workflow alternatives."
+    },
+    { "node_id": "justice", "agent_id": "occult.major.justice", "message": "Audit correctness, policy, and evidence." },
+    {
+      "node_id": "hanged-man",
+      "agent_id": "occult.major.hanged_man",
+      "message": "Reframe assumptions and expose blind spots."
+    },
+    { "node_id": "death", "agent_id": "occult.major.death", "message": "Identify obsolete pieces and safe refactors." },
+    {
+      "node_id": "temperance",
+      "agent_id": "occult.major.temperance",
+      "message": "Prepare a balanced synthesis of the findings."
+    },
+    {
+      "node_id": "devil",
+      "agent_id": "occult.major.devil",
+      "message": "Red-team the plan within authorized boundaries."
+    },
+    { "node_id": "tower", "agent_id": "occult.major.tower", "message": "Stress-test failure modes and recovery." },
+    { "node_id": "star", "agent_id": "occult.major.star", "message": "Forecast the roadmap and measurable outcomes." },
+    {
+      "node_id": "moon",
+      "agent_id": "occult.major.moon",
+      "message": "Separate uncertainty, ambiguity, and missing context."
+    },
+    { "node_id": "sun", "agent_id": "occult.major.sun", "message": "Describe the result in clear plain language." },
+    {
+      "node_id": "judgement",
+      "agent_id": "occult.major.judgement",
+      "message": "Score the independent results and identify rework."
+    },
+    { "node_id": "world", "agent_id": "occult.major.world", "message": "Coordinate the complete operating picture." },
+    {
+      "node_id": "synthesis",
+      "agent_id": "occult.major.temperance",
+      "message": "Synthesize all completed Major Arcana results into one handoff."
+    }
+  ],
+  "dependencies": [
+    { "source": "fool", "target": "synthesis" },
+    { "source": "magician", "target": "synthesis" },
+    { "source": "high-priestess", "target": "synthesis" },
+    { "source": "empress", "target": "synthesis" },
+    { "source": "emperor", "target": "synthesis" },
+    { "source": "hierophant", "target": "synthesis" },
+    { "source": "lovers", "target": "synthesis" },
+    { "source": "chariot", "target": "synthesis" },
+    { "source": "strength", "target": "synthesis" },
+    { "source": "hermit", "target": "synthesis" },
+    { "source": "wheel-of-fortune", "target": "synthesis" },
+    { "source": "justice", "target": "synthesis" },
+    { "source": "hanged-man", "target": "synthesis" },
+    { "source": "death", "target": "synthesis" },
+    { "source": "temperance", "target": "synthesis" },
+    { "source": "devil", "target": "synthesis" },
+    { "source": "tower", "target": "synthesis" },
+    { "source": "star", "target": "synthesis" },
+    { "source": "moon", "target": "synthesis" },
+    { "source": "sun", "target": "synthesis" },
+    { "source": "judgement", "target": "synthesis" },
+    { "source": "world", "target": "synthesis" }
+  ]
+}
