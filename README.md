@@ -28,6 +28,11 @@ exactly `true`.
 
 `council occult` remains a supported v1 compatibility alias.
 
+The Hermes release contains the complete signed Major Arcana starter deck. The
+Council bridge can invoke any of the 22 Major Arcana identifiers through the
+same local-only/free-only routing policy; use the full-deck example in
+`examples/occult/full-major-arcana.json` when you need bounded parallel review.
+
 ---
 
 ## 🏛️ Overview
@@ -58,8 +63,8 @@ required only for source development or the upstream npm distribution.
 
 ### 1. Tarot Router
 
-Use the
-[Tarot Router local quickstart](https://github.com/SgtSlummy/hermes-agent/blob/main/docs/tarot-router/quickstart.md).
+Use the authoritative
+[Tarot Router local public v1 quickstart](https://github.com/SgtSlummy/hermes-agent/blob/main/docs/tarot-router/quickstart.md).
 The verified Hermes installer selects and installs the immutable Agents Council
 release required by that Tarot Router version.
 
