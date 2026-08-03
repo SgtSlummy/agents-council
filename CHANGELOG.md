@@ -4,6 +4,18 @@ All notable changes to Agents Council are documented here.
 
 ## Unreleased
 
+## 0.5.6 - 2026-08-02
+
+### Added
+
+- Added the complete signed 22-card Major Arcana example for Tarot Router
+  Council readings, with bounded parallelism and resumable approval state.
+
+### Compatibility
+
+- Tarot Router contract `1.0.0`, Council state schema 3, CLI aliases, and
+  signed asset names remain unchanged.
+
 ## 0.5.5 - 2026-07-31
 
 ### Fixed
